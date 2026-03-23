@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 
 export default function OTPVerificationPage() {
@@ -91,9 +91,13 @@ export default function OTPVerificationPage() {
               {/* Verify Button */}
               <div className="relative flex-1">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary opacity-20 blur-sm rounded-2xl"></div>
-                <button className="relative w-full px-8 py-5 bg-primary text-primary-foreground font-bold rounded-2xl hover:bg-primary/90 transition-colors text-lg" style={{ fontFamily: 'Space Grotesk' }}>
+                <Link
+                  href="/dashboard"
+                  className="relative w-full block text-center px-8 py-5 bg-primary text-primary-foreground font-bold rounded-2xl hover:bg-primary/90 transition-colors text-lg"
+                  style={{ fontFamily: 'Space Grotesk' }}
+                >
                   Verify & Continue
-                </button>
+                </Link>
               </div>
 
               {/* Resend Code */}

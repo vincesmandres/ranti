@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import DashboardHeader from '@/components/dashboard-header'
 
 const marketTickets = [
   { id: 1, name: 'Cyber Genesis', price: 2.45, venue: 'Neon District Hub', tier: 'Standard Node Entry', image: 'cyber' },
@@ -16,25 +17,7 @@ export default function Marketplace() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/dashboard">
-            <h1 className="text-2xl font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>RANTI</h1>
-          </Link>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link href="/dashboard" className="text-muted hover:text-foreground transition-colors uppercase tracking-wide font-bold">
-              Dashboard
-            </Link>
-            <span className="text-primary uppercase tracking-wide font-bold">Marketplace</span>
-          </nav>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-4 py-2">
-            <span className="text-sm font-bold text-foreground">Operator_0x1</span>
-          </div>
-        </div>
-      </header>
+      <DashboardHeader />
 
       <div className="p-8">
         <h2 className="text-4xl font-bold text-primary mb-8" style={{ fontFamily: 'var(--font-climate)' }}>MARKETPLACE</h2>

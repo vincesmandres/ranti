@@ -57,13 +57,13 @@ export default function LoginPage() {
               {/* Submit Button */}
               <div className="relative pt-2">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary opacity-20 blur-sm rounded-lg"></div>
-                <button
-                  type="submit"
-                  className="relative w-full px-6 py-4 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors"
+                <Link
+                  href="/role-selector"
+                  className="relative w-full block text-center px-6 py-4 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors"
                   style={{ fontFamily: 'Space Grotesk' }}
                 >
                   VERIFY & ENTER
-                </button>
+                </Link>
               </div>
             </form>
 

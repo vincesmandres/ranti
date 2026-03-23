@@ -1,154 +1,492 @@
 'use client'
 
-import Link from 'next/link'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+
+type ModalType = 'none' | 'login' | 'otp' | 'role'
 
 export default function Home() {
+  const router = useRouter()
+  const [activeModal, setActiveModal] = useState<ModalType>('none')
+  const [otpValues, setOtpValues] = useState(['', '', '', '', '', ''])
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length <= 1 && /^\d*$/.test(value)) {
+      const newValues = [...otpValues]
+      newValues[index] = value
+      setOtpValues(newValues)
+      if (value && index < 5) {
+        const nextInput = document.getElementById(`otp-${index + 1}`)
+        nextInput?.focus()
+      }
+    }
+  }
+
+  const handleLoginNext = () => {
+    setActiveModal('otp')
+  }
+
+  const handleOtpNext = () => {
+    setActiveModal('role')
+  }
+
+  const handleRoleSelect = (role: 'organizador' | 'asistente') => {
+    setActiveModal('none')
+    router.push('/dashboard')
+  }
+
   return (
-    <main className="min-h-screen bg-background" style={{ background: 'radial-gradient(64.03% 80.04% at 50% 50%, rgba(139, 230, 85, 0.05) 0%, #0E150C 70%), #0E150C' }}>
+    <main className="min-h-screen bg-[#0E150C] relative">
       {/* Header */}
-      <header className="border-b border-border p-6 flex items-center justify-between relative z-50">
-        <div className="flex items-center gap-8">
-          <h1 className="text-4xl font-bold text-primary" style={{ fontFamily: 'Climate Crisis' }}>R</h1>
-          <nav className="flex items-center gap-8 text-sm">
-            <a href="#eventos" className="text-muted hover:text-foreground transition-colors uppercase tracking-wide font-bold">Eventos</a>
-            <a href="#protocolo" className="text-muted hover:text-foreground transition-colors uppercase tracking-wide font-bold">Protocolo</a>
-            <a href="#about" className="text-muted hover:text-foreground transition-colors uppercase tracking-wide font-bold">Acerca de</a>
+      <header className="border-b border-[#1a2518] px-8 py-4 flex items-center justify-between relative z-50">
+        <div className="flex items-center gap-10">
+          <h1 className="text-2xl font-bold text-primary tracking-wider" style={{ fontFamily: 'var(--font-climate)' }}>Ranti</h1>
+          <nav className="flex items-center gap-6 text-xs">
+            <a href="#eventos" className="text-primary border-b-2 border-primary pb-1 uppercase tracking-widest font-bold">Events</a>
+            <a href="#" className="text-muted hover:text-foreground transition-colors uppercase tracking-widest font-bold">Marketplace</a>
+            <a href="#" className="text-muted hover:text-foreground transition-colors uppercase tracking-widest font-bold">My Tickets</a>
           </nav>
         </div>
-        <Link href="/login" className="px-6 py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors text-sm">
-          LOGIN
-        </Link>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search protocol..."
+              className="bg-[#161D14] border border-[#2a3528] rounded-lg px-4 py-2 text-xs text-muted placeholder:text-muted/50 w-48 focus:outline-none focus:border-primary/50"
+            />
+            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <button
+            onClick={() => setActiveModal('login')}
+            className="px-5 py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors text-xs uppercase tracking-wide"
+          >
+            Login
+          </button>
+        </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden">
-        {/* Background elements */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-primary/5 to-secondary/5 blur-3xl rounded-full"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-tl from-secondary/5 to-primary/5 blur-3xl rounded-full"></div>
-        </div>
+      <section className="py-16 px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-start gap-12">
+            {/* Logo Carousel */}
+            <div className="w-64 h-64 bg-[#161D14] border border-[#2a3528] rounded-2xl flex items-center justify-center flex-shrink-0">
+              <span className="text-[120px] font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>R</span>
+            </div>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-8 text-center">
-          <div className="mb-6 inline-block">
-            <div className="flex items-center gap-3 bg-card border border-border rounded-full px-4 py-2">
-              <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
-              <span className="text-xs font-bold tracking-widest text-accent uppercase">Protocol Live</span>
+            {/* Hero Text */}
+            <div className="flex-1 pt-8">
+              <h1 className="text-7xl font-bold text-primary mb-4 leading-tight" style={{ fontFamily: 'var(--font-climate)' }}>
+                Texto 1
+              </h1>
+              <p className="text-lg text-muted mb-8">Texto 2</p>
+              <div className="flex gap-4">
+                <button className="px-6 py-3 bg-transparent border border-primary text-primary font-bold rounded-lg hover:bg-primary/10 transition-colors text-sm flex items-center gap-2">
+                  Explore Assets
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
+                <button className="px-6 py-3 bg-[#161D14] border border-[#2a3528] text-muted font-bold rounded-lg hover:border-primary/30 transition-colors text-sm">
+                  Documentation
+                </button>
+              </div>
             </div>
           </div>
 
-          <h1 className="text-8xl font-bold text-primary mb-6 leading-tight" style={{ fontFamily: 'Climate Crisis' }}>
-            Texto 1
-          </h1>
-
-          <p className="text-2xl text-muted mb-12 max-w-2xl mx-auto leading-relaxed">
-            Liquid tickets y reputación verificada para eventos premium en Solana
-          </p>
-
-          <div className="flex gap-4 justify-center mb-16">
-            <Link href="/role-selector" className="px-8 py-4 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors text-lg">
-              Comenzar Ahora
-            </Link>
-            <button className="px-8 py-4 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary/10 transition-colors text-lg">
-              Aprender Más
-            </button>
-          </div>
-
-          {/* Events Preview */}
-          <div id="eventos" className="pt-16">
-            <h2 className="text-3xl font-bold text-foreground mb-12" style={{ fontFamily: 'Climate Crisis' }}>
-              EVENTOS
-            </h2>
-            <div className="grid grid-cols-3 gap-6">
-              {[1, 2, 3].map((event) => (
-                <div key={event} className="group">
-                  <div className="relative overflow-hidden rounded-2xl bg-card border border-border aspect-video mb-4 hover:border-primary/50 transition-all">
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 via-secondary/10 to-transparent flex items-center justify-center">
-                      <div className="text-6xl opacity-30">🎟️</div>
-                    </div>
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all"></div>
-                  </div>
-                  <h3 className="text-lg font-bold text-foreground" style={{ fontFamily: 'Climate Crisis' }}>
-                    Evento {event}
-                  </h3>
-                  <p className="text-sm text-muted mt-2">Premium experience on Solana</p>
-                </div>
-              ))}
-            </div>
+          {/* Carousel Dots */}
+          <div className="flex justify-center gap-2 mt-6 ml-32">
+            <div className="w-2 h-2 rounded-full bg-primary"></div>
+            <div className="w-2 h-2 rounded-full bg-muted/30"></div>
           </div>
         </div>
       </section>
 
-      {/* Protocol Section */}
-      <section id="protocolo" className="relative py-24 px-8 border-t border-border">
+      {/* Events Section */}
+      <section id="eventos" className="py-12 px-8">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-primary mb-16 text-center" style={{ fontFamily: 'Climate Crisis' }}>
-            PROTOCOLO
-          </h2>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>
+              EVENTOS
+            </h2>
+            <button className="text-xs text-muted hover:text-primary transition-colors flex items-center gap-2 uppercase tracking-widest font-bold">
+              Scroll to Explore
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </div>
 
-          <div className="grid md:grid-cols-2 gap-12 mb-16">
-            <div className="bg-card border border-border rounded-2xl p-12">
-              <h3 className="text-2xl font-bold text-primary mb-4" style={{ fontFamily: 'Climate Crisis' }}>
-                ORGANIZADOR
-              </h3>
-              <ul className="space-y-3 text-muted">
-                <li className="flex items-start gap-3">
-                  <span className="text-primary mt-1">✓</span>
-                  <span>Crear eventos premium verificados</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-primary mt-1">✓</span>
-                  <span>Gestionar asistentes y reputación</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-primary mt-1">✓</span>
-                  <span>Emitir tickets líquidos NFT</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-card border border-border rounded-2xl p-12">
-              <h3 className="text-2xl font-bold text-secondary mb-4" style={{ fontFamily: 'Climate Crisis' }}>
-                ASISTENTE
-              </h3>
-              <ul className="space-y-3 text-muted">
-                <li className="flex items-start gap-3">
-                  <span className="text-secondary mt-1">✓</span>
-                  <span>Acceder a eventos verificados</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-secondary mt-1">✓</span>
-                  <span>Comprar y revender tickets</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-secondary mt-1">✓</span>
-                  <span>Construir reputación en el protocolo</span>
-                </li>
-              </ul>
-            </div>
+          <div className="grid grid-cols-3 gap-6">
+            {[
+              { id: 1, name: 'Evento 1', date: '24.09.24', tier: 'PLATINUM', color: '#B8FF8C' },
+              { id: 2, name: 'Evento 2', date: '12.09.24', tier: 'GOLD', color: '#4ADDB4' },
+              { id: 3, name: 'Evento 3', date: '08.07.24', tier: 'VIP', color: '#C0CAB3' },
+            ].map((event) => (
+              <div key={event.id} className="bg-[#161D14] border border-[#2a3528] rounded-2xl overflow-hidden group hover:border-primary/30 transition-all">
+                <p className="text-[10px] text-muted px-4 pt-4 uppercase tracking-widest">Protocol Asset 00{event.id}</p>
+                <div className="aspect-[4/3] bg-gradient-to-br from-[#1a2518] to-[#0E150C] flex items-center justify-center relative">
+                  {event.id === 1 && (
+                    <div className="w-3/4 h-1/2 border border-primary/20 rounded-lg"></div>
+                  )}
+                  {event.id === 2 && (
+                    <div className="w-24 h-24 border-4 border-primary/30 rounded-full flex items-center justify-center">
+                      <div className="w-12 h-12 border-2 border-primary/20 rounded-full"></div>
+                    </div>
+                  )}
+                  {event.id === 3 && (
+                    <div className="flex gap-2">
+                      <div className="w-16 h-16 rounded-full bg-[#2a3528]"></div>
+                      <div className="w-16 h-16 rounded-full bg-[#3a4538] -ml-8"></div>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="text-xl font-bold text-primary mb-3" style={{ fontFamily: 'var(--font-climate)' }}>
+                    {event.name}
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-muted uppercase tracking-wide">Date</p>
+                      <p className="text-xs text-foreground font-bold">{event.date}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted uppercase tracking-wide">Tier</p>
+                      <p className="text-xs font-bold" style={{ color: event.color }}>{event.tier}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted">
+                      <span>See More</span>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8 px-8 bg-card/50">
+      <footer className="border-t border-[#1a2518] py-6 px-8 mt-12">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6 text-xs text-muted">
-            <span className="font-bold uppercase tracking-wide">© 2024 RANTI</span>
-            <span>•</span>
-            <a href="#" className="hover:text-primary transition-colors">Privacy</a>
-            <span>•</span>
-            <a href="#" className="hover:text-primary transition-colors">Terms</a>
+          <div>
+            <h3 className="text-xl font-bold text-primary mb-1" style={{ fontFamily: 'var(--font-climate)' }}>Ranti</h3>
+            <p className="text-[10px] text-muted">© 2024 Ranti Protocol. Built on Solana.</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <span className="text-primary font-bold">RANTI</span>
-            <span>•</span>
-            <span className="text-secondary font-bold">PROTOCOL</span>
-            <span>•</span>
-            <span className="text-primary font-bold">v1.0</span>
+          <div className="flex items-center gap-8 text-xs text-muted">
+            <a href="#" className="hover:text-primary transition-colors">Privacy</a>
+            <a href="#" className="hover:text-primary transition-colors">Terms</a>
+            <a href="#" className="hover:text-primary transition-colors">Support</a>
+            <a href="#" className="hover:text-primary transition-colors">Solscan</a>
           </div>
         </div>
       </footer>
+
+      {/* Modal Overlay */}
+      {activeModal !== 'none' && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          {/* Backdrop with blur */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setActiveModal('none')}
+          />
+
+          {/* LOGIN MODAL */}
+          {activeModal === 'login' && (
+            <div className="relative z-10 bg-[#161D14] border border-[#2a3528] rounded-2xl p-8 w-[400px] shadow-2xl">
+              <h2 className="text-2xl font-bold text-primary text-center mb-1" style={{ fontFamily: 'var(--font-climate)' }}>
+                ACCESS
+              </h2>
+              <h2 className="text-2xl font-bold text-primary text-center mb-2" style={{ fontFamily: 'var(--font-climate)' }}>
+                PROTOCOL
+              </h2>
+              <p className="text-[10px] text-muted text-center uppercase tracking-widest mb-6">
+                Choose your verification method
+              </p>
+
+              <button
+                onClick={handleLoginNext}
+                className="w-full px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm flex items-center justify-center gap-3 mb-4"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                </svg>
+                CONNECT WALLET
+              </button>
+
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <span className="text-[10px] text-muted flex items-center gap-1">
+                  <span className="text-primary">◄</span> PHANTOM
+                </span>
+                <span className="text-[10px] text-muted flex items-center gap-1">
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                  SOLFLARE
+                </span>
+              </div>
+
+              <div className="flex items-center gap-4 my-4">
+                <div className="flex-1 h-px bg-[#2a3528]"></div>
+                <span className="text-[10px] text-muted">OR</span>
+                <div className="flex-1 h-px bg-[#2a3528]"></div>
+              </div>
+
+              <button className="w-full px-6 py-4 bg-[#1a2518] border border-[#2a3528] text-foreground font-bold rounded-xl hover:border-primary/30 transition-colors text-sm flex items-center justify-center gap-3 mb-3">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                SIGN IN WITH GOOGLE
+              </button>
+
+              <button className="w-full px-6 py-4 bg-[#1a2518] border border-[#2a3528] text-foreground font-bold rounded-xl hover:border-primary/30 transition-colors text-sm flex items-center justify-center gap-3">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                USE EMAIL ADDRESS
+              </button>
+
+              <p className="text-[9px] text-muted text-center mt-6 leading-relaxed">
+                NON-CUSTODIAL AND SECURE.<br/>
+                YOUR KEYS, YOUR ACCESS.
+              </p>
+            </div>
+          )}
+
+          {/* OTP MODAL */}
+          {activeModal === 'otp' && (
+            <div className="relative z-10 bg-[#0E150C] border border-[#2a3528] rounded-2xl overflow-hidden w-[900px] shadow-2xl flex">
+              {/* Left Panel */}
+              <div className="flex-1 p-8" style={{ background: 'radial-gradient(circle at 30% 70%, rgba(139, 230, 85, 0.15) 0%, transparent 50%)' }}>
+                {/* Back + Header */}
+                <div className="flex items-center justify-between mb-8">
+                  <button
+                    onClick={() => setActiveModal('login')}
+                    className="flex items-center gap-2 text-muted hover:text-primary transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span className="text-xl font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>RANTI</span>
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <button className="p-2 text-muted hover:text-primary transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                    <button className="p-2 text-muted hover:text-primary transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                    </button>
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary"></div>
+                  </div>
+                </div>
+
+                {/* Step indicator */}
+                <p className="text-[10px] text-muted uppercase tracking-widest mb-4">
+                  --- Step 2: Human Verification
+                </p>
+
+                {/* Title */}
+                <h1 className="text-5xl font-bold text-primary mb-6 leading-tight" style={{ fontFamily: 'var(--font-climate)' }}>
+                  Verify your<br/>Identity
+                </h1>
+
+                <p className="text-sm text-muted mb-2">
+                  {"We've sent a 6-digit code to your phone"} <span className="text-primary">+52 55</span>
+                </p>
+                <p className="text-sm text-primary mb-8">****1234</p>
+
+                {/* OTP Inputs */}
+                <div className="flex gap-3 mb-8">
+                  {otpValues.map((value, index) => (
+                    <input
+                      key={index}
+                      id={`otp-${index}`}
+                      type="text"
+                      maxLength={1}
+                      value={value}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      className="w-14 h-14 bg-[#161D14] border-2 border-[#2a3528] rounded-xl text-center text-2xl font-bold text-primary focus:border-primary focus:outline-none transition-colors"
+                      style={{ fontFamily: 'var(--font-grotesk)' }}
+                    />
+                  ))}
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-4 mb-8">
+                  <button
+                    onClick={handleOtpNext}
+                    className="flex-1 px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm flex items-center justify-center gap-2"
+                  >
+                    Verify & Link Wallet
+                    <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
+                  </button>
+                  <button className="px-6 py-4 text-muted hover:text-primary transition-colors text-sm flex items-center gap-2 border border-[#2a3528] rounded-xl">
+                    Resend Code
+                    <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] rounded">30s</span>
+                  </button>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between text-[10px] text-muted">
+                  <span className="flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    ENCRYPTED VIA SOLANA PROTOCOL
+                  </span>
+                  <div className="flex gap-4">
+                    <span className="text-primary">REQUIRED</span>
+                    <span>PROGRESS</span>
+                    <span>ABSTRACT</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Panel - Protocol Activity */}
+              <div className="w-[320px] bg-[#161D14] border-l border-[#2a3528] p-6">
+                <h3 className="text-lg font-bold text-primary mb-1" style={{ fontFamily: 'var(--font-climate)' }}>
+                  Protocol Activity
+                </h3>
+                <p className="text-[10px] text-muted uppercase tracking-widest mb-6">Verified on Solana</p>
+
+                <div className="space-y-3 mb-8">
+                  {[
+                    { icon: 'doc', label: 'Evidence Panel', active: true },
+                    { icon: 'history', label: 'Transaction History', active: false },
+                    { icon: 'check', label: 'Identity Verified', active: false },
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-center justify-between p-3 rounded-xl border ${
+                        item.active ? 'border-primary/50 bg-primary/5' : 'border-[#2a3528]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-6 h-6 rounded flex items-center justify-center ${item.active ? 'bg-primary/20 text-primary' : 'bg-[#2a3528] text-muted'}`}>
+                          {item.icon === 'doc' && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
+                          {item.icon === 'history' && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                          {item.icon === 'check' && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>}
+                        </div>
+                        <span className={`text-xs font-bold ${item.active ? 'text-primary' : 'text-muted'}`}>{item.label}</span>
+                      </div>
+                      <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Network Status */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between text-[10px] text-muted mb-2">
+                    <span className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+                      SOL NETWORK STATUS
+                    </span>
+                  </div>
+                  <div className="h-1 bg-[#2a3528] rounded-full overflow-hidden">
+                    <div className="h-full w-3/4 bg-gradient-to-r from-primary to-secondary rounded-full"></div>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-muted mt-2">
+                    <span>GLOBAL</span>
+                    <span>LATENCY <span className="text-primary">12ms</span></span>
+                  </div>
+                </div>
+
+                {/* View on Solscan */}
+                <button className="w-full px-4 py-3 border border-[#2a3528] rounded-xl text-xs font-bold text-muted hover:border-primary/30 hover:text-primary transition-colors uppercase tracking-widest">
+                  View on Solscan
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ROLE SELECTOR MODAL */}
+          {activeModal === 'role' && (
+            <div className="relative z-10 bg-[#0E150C] border border-[#2a3528] rounded-2xl p-8 w-[700px] shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>LUMINOUS</h3>
+                <span className="text-[10px] text-muted uppercase tracking-widest">Solana Protocol v4.0</span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-4xl font-bold text-primary text-center mb-2" style={{ fontFamily: 'var(--font-climate)' }}>
+                ELIGE TU ROL
+              </h1>
+              <p className="text-sm text-muted text-center mb-10">
+                Personaliza tu experiencia en el protocolo.
+              </p>
+
+              {/* Role Cards */}
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                {/* Organizador */}
+                <button
+                  onClick={() => handleRoleSelect('organizador')}
+                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-primary/50 transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] text-muted uppercase tracking-widest">REF: 00-[01]</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-primary mb-3" style={{ fontFamily: 'var(--font-climate)' }}>
+                    ORGANIZADOR
+                  </h3>
+                  <p className="text-xs text-muted leading-relaxed">
+                    Crea eventos, gestiona tickets y<br/>analiza metricas de lealtad.
+                  </p>
+                </button>
+
+                {/* Asistente */}
+                <button
+                  onClick={() => handleRoleSelect('asistente')}
+                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-secondary/50 transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center text-secondary">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] text-muted uppercase tracking-widest">ACE: 01-[47]</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-secondary mb-3" style={{ fontFamily: 'var(--font-climate)' }}>
+                    ASISTENTE
+                  </h3>
+                  <p className="text-xs text-muted leading-relaxed">
+                    Explora eventos, asegura tus<br/>accesos y construye tu reputacion.
+                  </p>
+                </button>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between text-[10px] text-muted pt-4 border-t border-[#2a3528]">
+                <span className="flex items-center gap-2">
+                  <span className="text-primary">---</span>
+                  SOLANA MAINNET STATUS: ACTIVE
+                </span>
+                <div className="flex items-center gap-6">
+                  <span>PRIVACY: PROTOCOL...</span>
+                  <span>FOUND: 04 <span className="text-primary">v2.029</span></span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </main>
   )
 }
-

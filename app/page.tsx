@@ -41,7 +41,11 @@ export default function Home() {
 
   const handleRoleSelect = (role: 'organizador' | 'asistente') => {
     setActiveModal('none')
-    router.push('/dashboard')
+    if (role === 'organizador') {
+      router.push('/organizer')
+    } else {
+      router.push('/dashboard')
+    }
   }
 
   return (

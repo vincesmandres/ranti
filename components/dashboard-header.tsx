@@ -24,13 +24,8 @@ export default function DashboardHeader({ username = 'phantom_hd_88x' }: Dashboa
   return (
     <header className="border-b border-border px-6 h-14 flex items-center justify-between bg-background sticky top-0 z-40">
       {/* Logo */}
-      <Link href="/dashboard">
-        <span
-          className="text-2xl font-bold text-primary tracking-wider"
-          style={{ fontFamily: 'var(--font-climate)' }}
-        >
-          RANTI
-        </span>
+      <Link href="/dashboard" className="flex-shrink-0">
+        <img src="/ranti-logo.svg" alt="Ranti" className="w-8 h-8" />
       </Link>
 
       {/* Nav - centered */}

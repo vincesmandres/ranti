@@ -40,7 +40,9 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-[#1a2518] px-8 py-4 flex items-center justify-between relative z-50">
         <div className="flex items-center gap-10">
-          <h1 className="text-2xl font-bold text-primary tracking-wider" style={{ fontFamily: 'var(--font-climate)' }}>Ranti</h1>
+          <Link href="/" className="flex-shrink-0">
+            <img src="/ranti-logo.svg" alt="Ranti" className="w-8 h-8" />
+          </Link>
           <nav className="flex items-center gap-6 text-xs">
             <a href="#eventos" className="text-primary border-b-2 border-primary pb-1 uppercase tracking-widest font-bold">Events</a>
             <a href="#" className="text-muted hover:text-foreground transition-colors uppercase tracking-widest font-bold">Marketplace</a>
@@ -73,7 +75,7 @@ export default function Home() {
           <div className="flex items-start gap-12">
             {/* Logo Carousel */}
             <div className="w-64 h-64 bg-[#161D14] border border-[#2a3528] rounded-2xl flex items-center justify-center flex-shrink-0">
-              <span className="text-[120px] font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>R</span>
+              <img src="/ranti-logo.svg" alt="Ranti" className="w-32 h-32" />
             </div>
 
             {/* Hero Text */}

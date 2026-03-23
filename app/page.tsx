@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 type ModalType = 'none' | 'login' | 'otp' | 'role'
 
@@ -39,9 +40,10 @@ export default function Home() {
     <main className="min-h-screen bg-[#0E150C] relative">
       {/* Header */}
       <header className="border-b border-[#1a2518] px-8 py-4 flex items-center justify-between relative z-50">
-        <div className="flex items-center gap-10">
-          <Link href="/" className="flex-shrink-0">
-            <img src="/ranti-logo.svg" alt="Ranti" className="w-8 h-8" />
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
+            <img src="/ranti-logo.svg" alt="Ranti" className="w-6 h-6" />
+            <span className="text-lg font-bold text-primary tracking-wider" style={{ fontFamily: 'var(--font-climate)' }}>RANTI</span>
           </Link>
           <nav className="flex items-center gap-6 text-xs">
             <a href="#eventos" className="text-primary border-b-2 border-primary pb-1 uppercase tracking-widest font-bold">Events</a>
@@ -74,8 +76,9 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-start gap-12">
             {/* Logo Carousel */}
-            <div className="w-64 h-64 bg-[#161D14] border border-[#2a3528] rounded-2xl flex items-center justify-center flex-shrink-0">
-              <img src="/ranti-logo.svg" alt="Ranti" className="w-32 h-32" />
+            <div className="w-64 h-64 bg-[#161D14] border border-[#2a3528] rounded-2xl flex flex-col items-center justify-center gap-4 flex-shrink-0">
+              <img src="/ranti-logo.svg" alt="Ranti" className="w-24 h-24" />
+              <span className="text-3xl font-bold text-primary tracking-wider" style={{ fontFamily: 'var(--font-climate)' }}>RANTI</span>
             </div>
 
             {/* Hero Text */}

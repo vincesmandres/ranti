@@ -23,9 +23,10 @@ export default function DashboardHeader({ username = 'phantom_hd_88x' }: Dashboa
 
   return (
     <header className="border-b border-border px-6 h-14 flex items-center justify-between bg-background sticky top-0 z-40">
-      {/* Logo */}
-      <Link href="/dashboard" className="flex-shrink-0">
-        <img src="/ranti-logo.svg" alt="Ranti" className="w-8 h-8" />
+      {/* Logo + Brand */}
+      <Link href="/dashboard" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
+        <img src="/ranti-logo.svg" alt="Ranti" className="w-6 h-6" />
+        <span className="text-sm font-bold text-primary tracking-widest" style={{ fontFamily: 'var(--font-climate)' }}>RANTI</span>
       </Link>
 
       {/* Nav - centered */}

@@ -1,12 +1,35 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 
 type ModalType = 'none' | 'login' | 'phone' | 'otp' | 'role'
+
+// LATAM country codes only
+const LATAM_COUNTRIES = [
+  { code: '+52', country: 'MX', name: 'Mexico', flag: '🇲🇽' },
+  { code: '+55', country: 'BR', name: 'Brasil', flag: '🇧🇷' },
+  { code: '+54', country: 'AR', name: 'Argentina', flag: '🇦🇷' },
+  { code: '+57', country: 'CO', name: 'Colombia', flag: '🇨🇴' },
+  { code: '+56', country: 'CL', name: 'Chile', flag: '🇨🇱' },
+  { code: '+51', country: 'PE', name: 'Peru', flag: '🇵🇪' },
+  { code: '+58', country: 'VE', name: 'Venezuela', flag: '🇻🇪' },
+  { code: '+593', country: 'EC', name: 'Ecuador', flag: '🇪🇨' },
+  { code: '+591', country: 'BO', name: 'Bolivia', flag: '🇧🇴' },
+  { code: '+595', country: 'PY', name: 'Paraguay', flag: '🇵🇾' },
+  { code: '+598', country: 'UY', name: 'Uruguay', flag: '🇺🇾' },
+  { code: '+506', country: 'CR', name: 'Costa Rica', flag: '🇨🇷' },
+  { code: '+507', country: 'PA', name: 'Panama', flag: '🇵🇦' },
+  { code: '+502', country: 'GT', name: 'Guatemala', flag: '🇬🇹' },
+  { code: '+503', country: 'SV', name: 'El Salvador', flag: '🇸🇻' },
+  { code: '+504', country: 'HN', name: 'Honduras', flag: '🇭🇳' },
+  { code: '+505', country: 'NI', name: 'Nicaragua', flag: '🇳🇮' },
+  { code: '+1809', country: 'DO', name: 'Rep. Dominicana', flag: '🇩🇴' },
+  { code: '+53', country: 'CU', name: 'Cuba', flag: '🇨🇺' },
+]
 
 export default function Home() {
   const router = useRouter()
@@ -16,6 +39,11 @@ export default function Home() {
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', ''])
   const [phoneNumber, setPhoneNumber] = useState('')
   const [countryCode, setCountryCode] = useState('+52')
+  const [isLoading, setIsLoading] = useState(false)
+  const [otpError, setOtpError] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+  const [otpSent, setOtpSent] = useState(false)
+  const [resendTimer, setResendTimer] = useState(0)
 
   // When wallet connects, jump directly to role selector
   useEffect(() => {
@@ -24,11 +52,22 @@ export default function Home() {
     }
   }, [connected, publicKey])
 
+  // Resend timer countdown
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendTimer])
+
   const shortAddress = publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
     : null
 
+  const selectedCountry = LATAM_COUNTRIES.find(c => c.code === countryCode)
+
   const handleOtpChange = (index: number, value: string) => {
+    setOtpError(null)
     if (value.length <= 1 && /^\d*$/.test(value)) {
       const newValues = [...otpValues]
       newValues[index] = value
@@ -40,36 +79,112 @@ export default function Home() {
     }
   }
 
-  const handleLoginNext = () => {
-    setActiveModal('phone')
-  }
-
-  const handlePhoneNext = () => {
-    if (phoneNumber.length >= 10) {
-      setActiveModal('otp')
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-${index - 1}`)
+      prevInput?.focus()
     }
   }
 
-  const handleOtpNext = () => {
-    setActiveModal('role')
+  const handleLoginNext = () => {
+    setPhoneNumber('')
+    setPhoneError(null)
+    setActiveModal('phone')
+  }
+
+  const handlePhoneNext = async () => {
+    if (phoneNumber.length < 10) {
+      setPhoneError('Ingresa un numero valido de al menos 10 digitos')
+      return
+    }
+    
+    setIsLoading(true)
+    setPhoneError(null)
+    
+    try {
+      // Simulate API call to send OTP
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setOtpSent(true)
+      setResendTimer(60)
+      setOtpValues(['', '', '', '', '', ''])
+      setActiveModal('otp')
+    } catch {
+      setPhoneError('Error al enviar el codigo. Intenta de nuevo.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return
+    
+    setIsLoading(true)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      setResendTimer(60)
+      setOtpError(null)
+      setOtpValues(['', '', '', '', '', ''])
+    } catch {
+      setOtpError('Error al reenviar codigo')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleOtpVerify = async () => {
+    const code = otpValues.join('')
+    if (code.length !== 6) {
+      setOtpError('Ingresa el codigo completo de 6 digitos')
+      return
+    }
+
+    setIsLoading(true)
+    setOtpError(null)
+
+    try {
+      // Simulate OTP verification - accept any 6-digit code for demo
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // For demo: accept code "123456" or any code
+      if (code === '000000') {
+        setOtpError('Codigo incorrecto. Intenta de nuevo.')
+        setIsLoading(false)
+        return
+      }
+
+      setActiveModal('role')
+    } catch {
+      setOtpError('Error de verificacion. Intenta de nuevo.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleConnectWallet = () => {
     openWalletModal(true)
   }
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setActiveModal('none')
+    setPhoneNumber('')
+    setOtpValues(['', '', '', '', '', ''])
+    setOtpError(null)
+    setPhoneError(null)
+    setOtpSent(false)
     if (connected) disconnect()
-  }
+  }, [connected, disconnect])
 
   const handleRoleSelect = (role: 'organizador' | 'asistente') => {
-    setActiveModal('none')
-    if (role === 'organizador') {
-      router.push('/organizer')
-    } else {
-      router.push('/dashboard')
-    }
+    setIsLoading(true)
+    // Small delay for UX feedback
+    setTimeout(() => {
+      setActiveModal('none')
+      if (role === 'organizador') {
+        router.push('/organizer')
+      } else {
+        router.push('/dashboard')
+      }
+    }, 300)
   }
 
   // Shared close button component
@@ -346,6 +461,16 @@ export default function Home() {
                 Te enviaremos un codigo de verificacion para confirmar tu identidad.
               </p>
 
+              {/* LATAM Notice */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-2 mb-6">
+                <p className="text-[10px] text-primary flex items-center gap-2">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Disponible solo para paises de Latinoamerica
+                </p>
+              </div>
+
               {/* Phone input */}
               <div className="mb-6">
                 <label className="text-[10px] text-muted uppercase tracking-widest block mb-2">
@@ -354,38 +479,72 @@ export default function Home() {
                 <div className="flex gap-2">
                   <select
                     value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
-                    className="w-24 bg-[#0E150C] border border-[#2a3528] rounded-xl px-3 py-4 text-sm text-foreground focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer"
+                    onChange={(e) => {
+                      setCountryCode(e.target.value)
+                      setPhoneError(null)
+                    }}
+                    className="w-32 bg-[#0E150C] border border-[#2a3528] rounded-xl px-3 py-4 text-sm text-foreground focus:border-primary focus:outline-none transition-colors cursor-pointer"
                     style={{ fontFamily: 'var(--font-grotesk)' }}
                   >
-                    <option value="+52">+52</option>
-                    <option value="+1">+1</option>
-                    <option value="+34">+34</option>
-                    <option value="+44">+44</option>
-                    <option value="+55">+55</option>
+                    {LATAM_COUNTRIES.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.flag} {country.code}
+                      </option>
+                    ))}
                   </select>
                   <input
                     type="tel"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) => {
+                      setPhoneNumber(e.target.value.replace(/\D/g, ''))
+                      setPhoneError(null)
+                    }}
                     placeholder="55 1234 5678"
-                    className="flex-1 bg-[#0E150C] border border-[#2a3528] rounded-xl px-4 py-4 text-lg text-foreground placeholder:text-muted/50 focus:border-primary focus:outline-none transition-colors"
+                    className={`flex-1 bg-[#0E150C] border rounded-xl px-4 py-4 text-lg text-foreground placeholder:text-muted/50 focus:border-primary focus:outline-none transition-colors ${
+                      phoneError ? 'border-destructive' : 'border-[#2a3528]'
+                    }`}
                     style={{ fontFamily: 'var(--font-grotesk)' }}
-                    maxLength={10}
+                    maxLength={12}
                   />
                 </div>
+                {selectedCountry && (
+                  <p className="text-[10px] text-muted mt-2">
+                    {selectedCountry.flag} {selectedCountry.name}
+                  </p>
+                )}
               </div>
+
+              {/* Error message */}
+              {phoneError && (
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                  <p className="text-xs text-destructive flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {phoneError}
+                  </p>
+                </div>
+              )}
 
               {/* Submit button */}
               <button
                 onClick={handlePhoneNext}
-                disabled={phoneNumber.length < 10}
-                className="w-full px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={phoneNumber.length < 10 || isLoading}
+                className="w-full px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-primary/20"
               >
-                Enviar Codigo
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    Enviar Codigo
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </>
+                )}
               </button>
 
               <p className="text-[9px] text-muted text-center mt-6 leading-relaxed">
@@ -438,21 +597,37 @@ export default function Home() {
                 </h1>
 
                 <p className="text-sm text-muted mb-2">
-                  {"We've sent a 6-digit code to your phone"} <span className="text-primary">{countryCode}</span>
+                  Enviamos un codigo de 6 digitos a <span className="text-primary">{selectedCountry?.flag} {countryCode}</span>
                 </p>
-                <p className="text-sm text-primary mb-8">****{phoneNumber.slice(-4)}</p>
+                <p className="text-sm text-primary mb-8 font-mono">****{phoneNumber.slice(-4)}</p>
+
+                {/* OTP Error */}
+                {otpError && (
+                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <p className="text-xs text-destructive flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {otpError}
+                    </p>
+                  </div>
+                )}
 
                 {/* OTP Inputs */}
-                <div className="flex gap-3 mb-8">
+                <div className="flex gap-3 mb-6">
                   {otpValues.map((value, index) => (
                     <input
                       key={index}
                       id={`otp-${index}`}
                       type="text"
+                      inputMode="numeric"
                       maxLength={1}
                       value={value}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
-                      className="w-14 h-14 bg-[#161D14] border-2 border-[#2a3528] rounded-xl text-center text-2xl font-bold text-primary focus:border-primary focus:outline-none transition-colors"
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      className={`w-14 h-14 bg-[#161D14] border-2 rounded-xl text-center text-2xl font-bold text-primary focus:border-primary focus:outline-none transition-colors ${
+                        otpError ? 'border-destructive' : value ? 'border-primary/50' : 'border-[#2a3528]'
+                      }`}
                       style={{ fontFamily: 'var(--font-grotesk)' }}
                     />
                   ))}
@@ -461,15 +636,35 @@ export default function Home() {
                 {/* Buttons */}
                 <div className="flex gap-4 mb-8">
                   <button
-                    onClick={handleOtpNext}
-                    className="flex-1 px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm flex items-center justify-center gap-2"
+                    onClick={handleOtpVerify}
+                    disabled={otpValues.join('').length !== 6 || isLoading}
+                    className="flex-1 px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-primary/20"
                   >
-                    Verify & Link Wallet
-                    <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                        Verificando...
+                      </>
+                    ) : (
+                      <>
+                        Verificar Codigo
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </>
+                    )}
                   </button>
-                  <button className="px-6 py-4 text-muted hover:text-primary transition-colors text-sm flex items-center gap-2 border border-[#2a3528] rounded-xl">
-                    Resend Code
-                    <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] rounded">30s</span>
+                  <button
+                    onClick={handleResendOtp}
+                    disabled={resendTimer > 0 || isLoading}
+                    className={`px-6 py-4 text-sm flex items-center gap-2 border border-[#2a3528] rounded-xl transition-colors ${
+                      resendTimer > 0 ? 'text-muted cursor-not-allowed' : 'text-muted hover:text-primary hover:border-primary/30'
+                    }`}
+                  >
+                    Reenviar
+                    {resendTimer > 0 && (
+                      <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] rounded font-mono">{resendTimer}s</span>
+                    )}
                   </button>
                 </div>
 
@@ -578,45 +773,69 @@ export default function Home() {
                 {/* Organizador */}
                 <button
                   onClick={() => handleRoleSelect('organizador')}
-                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-primary/50 transition-all group"
+                  disabled={isLoading}
+                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary">
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <span className="text-[10px] text-muted uppercase tracking-widest">REF: 00-[01]</span>
+                    <svg className="w-5 h-5 text-muted group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-primary mb-3" style={{ fontFamily: 'var(--font-climate)' }}>
+                  <h3 className="text-2xl font-bold text-primary mb-3 group-hover:text-primary/90" style={{ fontFamily: 'var(--font-climate)' }}>
                     ORGANIZADOR
                   </h3>
-                  <p className="text-xs text-muted leading-relaxed">
-                    Crea eventos, gestiona tickets y<br/>analiza metricas de lealtad.
+                  <p className="text-xs text-muted leading-relaxed mb-4">
+                    Crea eventos, gestiona tickets y analiza metricas de lealtad.
                   </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-[9px] px-2 py-1 bg-primary/10 text-primary rounded border border-primary/20">Crear Eventos</span>
+                    <span className="text-[9px] px-2 py-1 bg-primary/10 text-primary rounded border border-primary/20">Analytics</span>
+                    <span className="text-[9px] px-2 py-1 bg-primary/10 text-primary rounded border border-primary/20">Mint NFTs</span>
+                  </div>
                 </button>
 
-                {/* Asistente */}
+                {/* Asistente/Usuario */}
                 <button
                   onClick={() => handleRoleSelect('asistente')}
-                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-secondary/50 transition-all group"
+                  disabled={isLoading}
+                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-secondary/50 hover:shadow-lg hover:shadow-secondary/10 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center text-secondary">
+                    <div className="w-10 h-10 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
-                    <span className="text-[10px] text-muted uppercase tracking-widest">ACE: 01-[47]</span>
+                    <svg className="w-5 h-5 text-muted group-hover:text-secondary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-secondary mb-3" style={{ fontFamily: 'var(--font-climate)' }}>
+                  <h3 className="text-2xl font-bold text-secondary mb-3 group-hover:text-secondary/90" style={{ fontFamily: 'var(--font-climate)' }}>
                     ASISTENTE
                   </h3>
-                  <p className="text-xs text-muted leading-relaxed">
-                    Explora eventos, asegura tus<br/>accesos y construye tu reputacion.
+                  <p className="text-xs text-muted leading-relaxed mb-4">
+                    Explora eventos, asegura tus accesos y construye tu reputacion.
                   </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-[9px] px-2 py-1 bg-secondary/10 text-secondary rounded border border-secondary/20">Mis Tickets</span>
+                    <span className="text-[9px] px-2 py-1 bg-secondary/10 text-secondary rounded border border-secondary/20">Rewards</span>
+                    <span className="text-[9px] px-2 py-1 bg-secondary/10 text-secondary rounded border border-secondary/20">Check-in</span>
+                  </div>
                 </button>
               </div>
+
+              {/* Loading indicator when selecting role */}
+              {isLoading && (
+                <div className="flex items-center justify-center gap-3 mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                  <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                  <span className="text-sm text-primary">Redirigiendo al dashboard...</span>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="flex items-center justify-between text-[10px] text-muted pt-4 border-t border-[#2a3528]">

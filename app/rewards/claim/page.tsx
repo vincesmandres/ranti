@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import DashboardHeader from '@/components/dashboard-header'
 
-export default function ClaimRewardPage() {
+function ClaimRewardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isClaiming, setIsClaiming] = useState(false)
@@ -174,5 +174,20 @@ export default function ClaimRewardPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ClaimRewardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ClaimRewardContent />
+    </Suspense>
   )
 }

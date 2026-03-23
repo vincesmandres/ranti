@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import DashboardHeader from '@/components/dashboard-header'
+import { AuthLayout } from '@/components/layouts/auth-layout'
 
 const rewards = [
   {
@@ -91,10 +91,8 @@ const tickets = [
 
 export default function Dashboard() {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <DashboardHeader />
-
-      <div className="flex flex-1 overflow-hidden">
+    <AuthLayout>
+      <div className="flex flex-1 overflow-hidden min-h-[calc(100vh-56px)]">
         {/* Left Panel */}
         <div className="w-[480px] border-r border-border flex flex-col overflow-y-auto">
           {/* Score */}
@@ -311,7 +309,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   )
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useWallet } from '@solana/wallet-adapter-react'
@@ -44,6 +44,19 @@ export default function Home() {
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [otpSent, setOtpSent] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
+  const [showWalletMenu, setShowWalletMenu] = useState(false)
+  const walletMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close wallet menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (walletMenuRef.current && !walletMenuRef.current.contains(event.target as Node)) {
+        setShowWalletMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // When wallet connects, jump directly to role selector
   useEffect(() => {
@@ -165,14 +178,16 @@ export default function Home() {
   }
 
   const closeModal = useCallback(() => {
+    // Don't disconnect if closing from role modal (user already authenticated)
+    const shouldDisconnect = activeModal === 'login' || activeModal === 'phone' || activeModal === 'otp'
     setActiveModal('none')
     setPhoneNumber('')
     setOtpValues(['', '', '', '', '', ''])
     setOtpError(null)
     setPhoneError(null)
     setOtpSent(false)
-    if (connected) disconnect()
-  }, [connected, disconnect])
+    if (shouldDisconnect && connected) disconnect()
+  }, [connected, disconnect, activeModal])
 
   const handleRoleSelect = (role: 'organizador' | 'asistente') => {
     setIsLoading(true)
@@ -226,17 +241,85 @@ export default function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <button
-            onClick={() => connected ? setActiveModal('role') : setActiveModal('login')}
-            className={`px-5 py-2 font-bold rounded-lg transition-all text-xs uppercase tracking-wide flex items-center gap-2 ${
-              connected
-                ? 'bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20'
-                : 'bg-primary text-primary-foreground hover:bg-primary/90'
-            }`}
-          >
-            {connected && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>}
-            {connected ? shortAddress : 'Login'}
-          </button>
+          
+          {/* Wallet Button with Dropdown */}
+          {connected && shortAddress ? (
+            <div className="relative" ref={walletMenuRef}>
+              <button
+                onClick={() => setShowWalletMenu(!showWalletMenu)}
+                className="px-4 py-2 font-bold rounded-lg transition-all text-xs uppercase tracking-wide flex items-center gap-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                {shortAddress}
+                <svg className={`w-3 h-3 transition-transform ${showWalletMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {showWalletMenu && (
+                <div className="absolute top-full right-0 mt-2 w-52 bg-[#161D14] border border-[#404A38]/50 rounded-xl shadow-xl overflow-hidden z-[60]">
+                  <div className="p-3 border-b border-[#404A38]/30">
+                    <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Connected Wallet</p>
+                    <p className="text-xs font-mono text-primary">{shortAddress}</p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setShowWalletMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      User Dashboard
+                    </Link>
+                    <Link
+                      href="/organizer"
+                      onClick={() => setShowWalletMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Organizer Dashboard
+                    </Link>
+                    <Link
+                      href="/tickets"
+                      onClick={() => setShowWalletMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                      </svg>
+                      My Tickets
+                    </Link>
+                  </div>
+                  <div className="border-t border-[#404A38]/30 py-1">
+                    <button
+                      onClick={() => {
+                        setShowWalletMenu(false)
+                        disconnect()
+                      }}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-destructive hover:bg-destructive/10 transition-colors w-full text-left"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Disconnect Wallet
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setActiveModal('login')}
+              className="px-5 py-2 font-bold rounded-lg transition-all text-xs uppercase tracking-wide bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Login
+            </button>
+          )}
         </div>
       </header>
 

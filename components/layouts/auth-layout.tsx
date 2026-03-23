@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -19,7 +21,33 @@ const navItems = [
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { connected, publicKey, disconnect } = useWallet()
+  const { setVisible: openWalletModal } = useWalletModal()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const shortAddress = publicKey
+    ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
+    : null
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleLogout = async () => {
+    setShowDropdown(false)
+    await disconnect()
+    router.push('/')
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -63,11 +91,71 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             </svg>
           </button>
 
-          {/* User badge */}
-          <div className="hidden sm:flex items-center gap-2 bg-surface-container-low border border-border rounded-lg px-3 py-1.5">
-            <div className="w-5 h-5 bg-gradient-to-br from-primary to-secondary rounded-full" />
-            <span className="text-xs font-bold text-foreground">phantom_hd</span>
-          </div>
+          {/* User/Wallet badge with dropdown */}
+          {connected && shortAddress ? (
+            <div className="relative hidden sm:block" ref={dropdownRef}>
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="flex items-center gap-2 bg-surface-container-low border border-border rounded-lg px-3 py-1.5 hover:border-primary/30 transition-colors"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                <span className="text-xs font-mono text-foreground">{shortAddress}</span>
+                <svg className={`w-3 h-3 text-muted transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown */}
+              {showDropdown && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-[#161D14] border border-[#404A38]/50 rounded-xl shadow-xl overflow-hidden z-50">
+                  <div className="p-3 border-b border-[#404A38]/30">
+                    <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Connected Wallet</p>
+                    <p className="text-xs font-mono text-primary">{shortAddress}</p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setShowDropdown(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/organizer"
+                      onClick={() => setShowDropdown(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Organizer Mode
+                    </Link>
+                  </div>
+                  <div className="border-t border-[#404A38]/30 py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-destructive hover:bg-destructive/10 transition-colors w-full text-left"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Disconnect Wallet
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => openWalletModal(true)}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary text-[#143800] text-xs font-bold rounded-lg hover:bg-primary/90 transition-all"
+            >
+              Connect Wallet
+            </button>
+          )}
 
           {/* Mobile menu button */}
           <button

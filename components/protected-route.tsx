@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useWallet } from '@solana/wallet-adapter-react'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -13,10 +14,17 @@ const BYPASS_AUTH_FOR_TESTING = process.env.NEXT_PUBLIC_BYPASS_AUTH_FOR_TESTING 
 
 /**
  * Wrapper component to protect routes behind authentication
+ * Accepts either traditional auth OR a connected Solana wallet
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+  const { connected, publicKey } = useWallet()
   const router = useRouter()
+  const [isReady, setIsReady] = useState(false)
+
+  // Consider authenticated if user exists OR wallet is connected
+  const isAuthenticated = !!user || (connected && !!publicKey)
+  const loading = authLoading && !connected
 
   // Bypass auth for testing mode
   if (BYPASS_AUTH_FOR_TESTING) {
@@ -24,12 +32,20 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   useEffect(() => {
-    if (!loading && !user) {
+    // Wait a tick for wallet state to initialize
+    const timer = setTimeout(() => {
+      setIsReady(true)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (isReady && !loading && !isAuthenticated) {
       router.push('/')
     }
-  }, [user, loading, router])
+  }, [isAuthenticated, loading, router, isReady])
 
-  if (loading) {
+  if (!isReady || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -40,7 +56,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     )
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return null
   }
 

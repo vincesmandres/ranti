@@ -15,10 +15,10 @@ interface ActionCTAProps {
 }
 
 const variantStyles = {
-  primary: "bg-primary text-primary-foreground hover:bg-primary/90",
-  secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/90",
-  outline: "border border-primary text-primary hover:bg-primary/10",
-  ghost: "text-muted-foreground hover:text-foreground hover:bg-surface-container-high",
+  primary: "bg-primary text-[#143800] hover:bg-primary/90 shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]",
+  secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg shadow-secondary/20 hover:shadow-secondary/30 hover:scale-[1.02] active:scale-[0.98]",
+  outline: "border border-primary/50 text-primary hover:bg-primary/10 hover:border-primary hover:scale-[1.02] active:scale-[0.98]",
+  ghost: "text-muted-foreground hover:text-foreground hover:bg-[#1A2217]",
 }
 
 const sizeStyles = {

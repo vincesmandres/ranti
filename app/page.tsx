@@ -121,7 +121,7 @@ export default function Home() {
           >
             {connected && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>}
             {connected ? shortAddress : 'Login'}
-          </button          </div>
+          </button>
         </div>
       </header>
 

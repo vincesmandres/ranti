@@ -1,228 +1,171 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
 import DashboardHeader from '@/components/dashboard-header'
 
-const marketTickets = [
-  { id: 1, name: 'Cyber Genesis', price: 2.45, venue: 'Neon District Hub', tier: 'Standard Node Entry', image: 'cyber' },
-  { id: 2, name: 'Protocol Summit', price: 5.20, venue: 'Convention Center', tier: 'VIP Access', image: 'summit' },
-  { id: 3, name: 'Hacker Night', price: 1.80, venue: 'Underground Lab', tier: 'General Admission', image: 'hacker' },
+const upcomingEvents = [
+  { 
+    id: '1', 
+    name: 'SOLANA\nSUMMER FEST', 
+    price: 4.5, 
+    date: 'JUNE 28, 2024',
+    venue: 'OCEANVIEW',
+    badge: 'COMMUNITY'
+  },
+  { 
+    id: '3', 
+    name: 'DARK MODE\nSUMMIT', 
+    price: 12.0, 
+    date: 'JULY 15, 2024',
+    venue: 'SINGAPORE',
+    badge: 'VIP PRESALE'
+  },
+  { 
+    id: '4', 
+    name: 'RANTI LAUNCH\nPARTY', 
+    price: 0.05, 
+    date: 'AUGUST 01, 2024',
+    venue: 'NEW YORK',
+    badge: 'EARLY'
+  },
+]
+
+const futureEvents = [
+  { id: '5', organizer: 'Solana Labs', event: 'Breakpoint Workshop Series', venue: '12 OCT 2025', price: 2.5 },
+  { id: '6', organizer: 'Mean DAO', event: 'Cross-Chain Liquidity Night', venue: '24 OCT 2025', price: 1.8 },
+  { id: '7', organizer: 'AI DAO', event: 'Autonomous Agents Meetup', venue: '05 NOV 2025', price: 3.2 },
+  { id: '8', organizer: 'World Stunning', event: 'Esports Finals VIP', venue: '18 DEC 2025', price: 8.0 },
 ]
 
 export default function Marketplace() {
-  const [selectedTicket, setSelectedTicket] = useState<typeof marketTickets[0] | null>(null)
-  const [showCheckout, setShowCheckout] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-[#0E150C]">
       <DashboardHeader />
 
-      <div className="p-8">
-        <h2 className="text-4xl font-bold text-primary mb-8" style={{ fontFamily: 'var(--font-climate)' }}>MARKETPLACE</h2>
+      <div className="p-6 md:p-8">
+        {/* Header */}
+        <h1 
+          className="text-4xl md:text-5xl font-bold text-primary mb-8"
+          style={{ fontFamily: 'var(--font-climate)' }}
+        >
+          PROXIMOS EVENTOS
+        </h1>
 
-        {/* Tickets Grid */}
-        <div className="grid grid-cols-3 gap-6">
-          {marketTickets.map((ticket) => (
-            <div 
-              key={ticket.id}
-              className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all cursor-pointer"
-              onClick={() => {
-                setSelectedTicket(ticket)
-                setShowCheckout(true)
-              }}
+        {/* Upcoming Events Carousel */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-12">
+          {upcomingEvents.map((event) => (
+            <Link
+              key={event.id}
+              href={`/marketplace/${event.id}`}
+              className="group bg-[#161D14] border border-[#404A38]/20 rounded-2xl overflow-hidden hover:border-primary/40 transition-all hover:shadow-lg hover:shadow-primary/5"
             >
-              <div className="aspect-video bg-gradient-to-br from-primary/20 via-secondary/10 to-transparent relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-24 h-24 border-2 border-primary/30 rounded-xl flex items-center justify-center">
-                    <span className="text-4xl text-primary/50">N</span>
+              {/* Top Section - Badge & Price */}
+              <div className="p-4 pb-0">
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-[9px] font-bold px-2 py-1 rounded uppercase tracking-wider ${
+                    event.badge === 'COMMUNITY' ? 'bg-primary/20 text-primary border border-primary/30' :
+                    event.badge === 'VIP PRESALE' ? 'bg-secondary/20 text-secondary border border-secondary/30' :
+                    'bg-[#252C21] text-muted border border-[#404A38]/30'
+                  }`}>
+                    {event.badge}
+                  </span>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-primary" style={{ fontFamily: 'var(--font-grotesk)' }}>
+                      {event.price} <span className="text-sm text-muted">SOL</span>
+                    </p>
+                    <p className="text-[9px] text-muted uppercase tracking-wide">PRESALE</p>
                   </div>
                 </div>
               </div>
-              <div className="p-4">
-                <h3 className="text-xl font-bold text-primary mb-1" style={{ fontFamily: 'var(--font-climate)' }}>
-                  {ticket.name}
-                </h3>
-                <p className="text-xs text-muted uppercase tracking-wide mb-3">{ticket.tier}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-secondary" style={{ fontFamily: 'var(--font-grotesk)' }}>
-                    {ticket.price} SOL
+
+              {/* Event Image Placeholder */}
+              <div className="h-32 bg-gradient-to-br from-[#1A2217] to-[#252C21] mx-4 rounded-xl mb-4 relative overflow-hidden flex items-center justify-center">
+                <div className="w-16 h-16 border border-primary/20 rounded-xl flex items-center justify-center">
+                  <span className="text-3xl text-primary/30" style={{ fontFamily: 'var(--font-climate)' }}>
+                    {event.name.charAt(0)}
                   </span>
-                  <button className="px-4 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors">
-                    Adquirir
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Checkout Modal */}
-      {showCheckout && selectedTicket && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>Checkout</h3>
-              <button 
-                onClick={() => setShowCheckout(false)}
-                className="text-muted hover:text-foreground transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="mb-6">
-              <p className="text-xs text-muted uppercase tracking-wide mb-2">Protocol Checkout</p>
-              <h4 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'var(--font-climate)' }}>
-                {selectedTicket.name}
-              </h4>
-            </div>
-
-            <div className="bg-background border border-border rounded-xl p-4 mb-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center">
-                  <span className="text-2xl text-primary">N</span>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-foreground">{selectedTicket.name}</p>
-                  <p className="text-xs text-muted">{selectedTicket.tier}</p>
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted">Ticket Price</span>
-                  <span className="text-foreground font-bold">{selectedTicket.price} SOL</span>
+              {/* Event Name */}
+              <div className="px-4 pb-4">
+                <h3 
+                  className="text-xl font-bold text-primary whitespace-pre-line leading-tight mb-2"
+                  style={{ fontFamily: 'var(--font-climate)' }}
+                >
+                  {event.name}
+                </h3>
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-muted uppercase tracking-wide">{event.date}</p>
+                  <p className="text-[10px] text-muted uppercase tracking-wide">{event.venue}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Protocol Fee</span>
-                  <span className="text-foreground font-bold">0.00 SOL</span>
-                </div>
-                <div className="border-t border-border pt-2 flex justify-between">
-                  <span className="text-foreground font-bold">Total Amount</span>
-                  <span className="text-primary font-bold text-lg">{selectedTicket.price} SOL</span>
+
+                {/* Progress Bars */}
+                <div className="flex gap-1 mt-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-sm ${i < 4 ? 'bg-primary' : 'bg-[#404A38]/30'}`}
+                    />
+                  ))}
                 </div>
               </div>
-            </div>
-
-            <div className="mb-6">
-              <p className="text-xs text-muted mb-2">Owner</p>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-foreground">Connected Wallet</span>
-                <span className="text-xs text-muted">0x71...f9a2</span>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => {
-                setShowCheckout(false)
-                setShowPaymentModal(true)
-              }}
-              className="w-full py-4 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Adquirir Ticket
-            </button>
-
-            <p className="text-xs text-muted text-center mt-4">
-              By confirming, you agree to the Ranti Protocol Smart Contract Terms.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Payment/OTP Modal */}
-      {showPaymentModal && (
-        <PaymentModal onClose={() => setShowPaymentModal(false)} />
-      )}
-    </main>
-  )
-}
-
-function PaymentModal({ onClose }: { onClose: () => void }) {
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
-  const [countdown, setCountdown] = useState(44)
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length <= 1) {
-      const newOtp = [...otp]
-      newOtp[index] = value
-      setOtp(newOtp)
-      
-      if (value && index < 5) {
-        const nextInput = document.getElementById(`otp-${index + 1}`)
-        nextInput?.focus()
-      }
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
-            <span className="text-sm font-bold text-secondary">Awaiting Signature</span>
-          </div>
-          <button 
-            onClick={onClose}
-            className="text-muted hover:text-foreground transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <h3 className="text-2xl font-bold text-foreground mb-2" style={{ fontFamily: 'var(--font-climate)' }}>
-          Secure Link Wallet
-        </h3>
-        <p className="text-sm text-muted mb-6">
-          Verification required for high-tier protocol access. Enter the 6-digit code sent to your linked mobile device.
-        </p>
-
-        {/* OTP Inputs */}
-        <div className="flex gap-3 justify-center mb-6">
-          {otp.map((digit, index) => (
-            <input
-              key={index}
-              id={`otp-${index}`}
-              type="text"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleOtpChange(index, e.target.value)}
-              className="w-12 h-14 bg-background border border-border rounded-lg text-center text-2xl font-bold text-foreground focus:border-primary focus:outline-none transition-colors"
-              style={{ fontFamily: 'var(--font-grotesk)' }}
-            />
+            </Link>
           ))}
         </div>
 
-        <p className="text-xs text-muted text-center mb-6">
-          Resend Code in {countdown}s
-        </p>
-
-        <button className="w-full py-4 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-          Verify & Mint
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
-        </button>
-
-        <div className="mt-6 pt-6 border-t border-border">
-          <p className="text-xs text-muted mb-2">Authenticated As</p>
-          <p className="text-sm text-foreground">Operator_0x1...4f21</p>
-        </div>
-
-        <button 
-          onClick={onClose}
-          className="w-full mt-4 py-3 border border-border text-muted font-bold rounded-lg hover:border-primary/30 hover:text-foreground transition-colors"
+        {/* Future Events Section */}
+        <h2 
+          className="text-3xl md:text-4xl font-bold text-primary mb-6"
+          style={{ fontFamily: 'var(--font-climate)' }}
         >
-          Cancel Transaction
-        </button>
+          EVENTOS FUTUROS
+        </h2>
+
+        {/* Events Table */}
+        <div className="bg-[#161D14] border border-[#404A38]/20 rounded-2xl overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[#404A38]/20">
+                <th className="text-left px-6 py-4 text-[10px] font-bold text-muted uppercase tracking-widest">Organizer</th>
+                <th className="text-left px-6 py-4 text-[10px] font-bold text-muted uppercase tracking-widest">Event</th>
+                <th className="text-left px-6 py-4 text-[10px] font-bold text-muted uppercase tracking-widest">Venue</th>
+                <th className="text-left px-6 py-4 text-[10px] font-bold text-muted uppercase tracking-widest">Happens On</th>
+                <th className="text-right px-6 py-4 text-[10px] font-bold text-muted uppercase tracking-widest"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {futureEvents.map((event) => (
+                <tr key={event.id} className="border-b border-[#404A38]/10 hover:bg-[#1A2217]/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      <span className="text-xs font-bold text-primary">{event.organizer}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs text-foreground">{event.event}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs text-muted">{event.venue}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs text-muted">{event.price} SOL</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <Link
+                      href={`/marketplace/${event.id}`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-[#143800] text-[10px] font-bold rounded-lg hover:bg-primary/90 transition-all hover:shadow-md hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      BUY NOW
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </main>
   )
 }

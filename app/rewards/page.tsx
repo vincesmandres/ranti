@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { AuthLayout } from '@/components/layouts/auth-layout'
 import { StatusPill } from '@/components/ui/status-pill'
 
@@ -85,6 +86,27 @@ export default function RewardsPage() {
           </div>
           <p className="text-xs text-muted-foreground mt-2">92% al siguiente rango</p>
         </div>
+
+        {/* Claimable Reward */}
+        <Link 
+          href="/rewards/claim"
+          className="block bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 rounded-2xl p-6 mb-6 hover:border-primary/50 transition-all group"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[9px] font-bold px-2.5 py-1 rounded bg-primary/20 text-primary border border-primary/30 uppercase tracking-wider">
+              CLAIMABLE
+            </span>
+            <span className="text-xs text-muted group-hover:text-foreground transition-colors">
+              Claim Now &rarr;
+            </span>
+          </div>
+          <h3 className="text-xl font-bold text-primary mb-2" style={{ fontFamily: 'var(--font-climate)' }}>
+            GENESIS CATALYST
+          </h3>
+          <p className="text-xs text-muted">
+            Event participation confirmed. Your NFT reward is ready to claim.
+          </p>
+        </Link>
 
         {/* Rewards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

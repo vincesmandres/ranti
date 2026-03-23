@@ -13,7 +13,8 @@ interface AuthLayoutProps {
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/marketplace', label: 'Marketplace' },
+  { href: '/eventos', label: 'Events' },
+  { href: '/marketplace', label: 'Market' },
   { href: '/tickets', label: 'My Tickets' },
   { href: '/rewards', label: 'Rewards' },
 ]
@@ -130,17 +131,8 @@ export function AuthLayout({ children }: AuthLayoutProps) {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      Switch to Organizer
+                      Organizer Mode
                     </Link>
-                    <button
-                      onClick={() => setShowDropdown(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary transition-colors w-full text-left border-t border-[#404A38]/30 mt-1 pt-1"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Settings
-                    </button>
                   </div>
                   <div className="border-t border-[#404A38]/30 py-1">
                     <button

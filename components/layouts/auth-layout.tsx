@@ -13,8 +13,7 @@ interface AuthLayoutProps {
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/eventos', label: 'Events' },
-  { href: '/marketplace', label: 'Market' },
+  { href: '/marketplace', label: 'Marketplace' },
   { href: '/tickets', label: 'My Tickets' },
   { href: '/rewards', label: 'Rewards' },
 ]

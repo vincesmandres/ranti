@@ -1,5 +1,7 @@
 -- Add phone verification columns to profiles
 ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS phone TEXT,
+ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false,
 ADD COLUMN IF NOT EXISTS phone_otp_sent_at TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS phone_verified_at TIMESTAMPTZ;
 

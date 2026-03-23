@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Climate_Crisis, Poppins, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { RantiWalletProvider } from '@/lib/solana/wallet-provider'
 import './globals.css'
 
 const climateCrisis = Climate_Crisis({ subsets: ["latin"], weight: ["400"] });
@@ -42,7 +43,9 @@ export default function RootLayout({
       '--font-grotesk': spaceGrotesk.style.fontFamily,
     } as React.CSSProperties}>
       <body className="font-sans antialiased">
-        {children}
+        <RantiWalletProvider>
+          {children}
+        </RantiWalletProvider>
         <Analytics />
       </body>
     </html>

@@ -1,51 +1,35 @@
 'use client'
 
 import Link from 'next/link'
-import DashboardHeader from '@/components/dashboard-header'
+import { useEffect, useState } from 'react'
+import { ProtectedRoute } from '@/components/protected-route'
+import { AuthLayout } from '@/components/layouts/auth-layout'
+import { useAuth } from '@/lib/hooks/use-auth'
+import { useDashboard } from '@/lib/hooks/use-dashboard'
+import type { DashboardData } from '@/lib/types'
 
-const rewards = [
-  {
-    id: 1,
-    name: 'OG Collector',
-    sub: 'EARLY ADOPTER',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-      </svg>
-    ),
-  },
-  {
-    id: 2,
-    name: 'Genesis Mint',
-    sub: 'SEASON 1 RARE',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
-      </svg>
-    ),
-  },
-  {
-    id: 3,
-    name: 'Airdrop Multiplier',
-    sub: 'X1.2 ACTIVE',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-      </svg>
-    ),
-  },
-  {
-    id: 4,
-    name: 'Ticket Confirmed',
-    sub: 'UNLOCK AT LEVEL 5',
-    locked: true,
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      </svg>
-    ),
-  },
-]
+const rewardIcons = {
+  'OG Collector': (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  ),
+  'Genesis Mint': (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
+    </svg>
+  ),
+  'Airdrop Multiplier': (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  ),
+  'Ticket Confirmed': (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  ),
+}
 
 const onChainActivity = [
   { icon: 'check', label: 'Check-in Verified', sub: 'LOLLAPALOOZA 2024' },
@@ -90,11 +74,52 @@ const tickets = [
 ]
 
 export default function Dashboard() {
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <DashboardHeader />
+  const { user } = useAuth()
+  const { data: dashboardData, loading, error } = useDashboard()
+  const [rewardStatus, setRewardStatus] = useState<any>(null)
 
-      <div className="flex flex-1 overflow-hidden">
+  useEffect(() => {
+    if (dashboardData) {
+      setRewardStatus(dashboardData.rewards)
+    }
+  }, [dashboardData])
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <AuthLayout>
+          <div className="flex flex-1 items-center justify-center">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="text-muted mt-4">Loading dashboard...</p>
+            </div>
+          </div>
+        </AuthLayout>
+      </ProtectedRoute>
+    )
+  }
+
+  if (error) {
+    return (
+      <ProtectedRoute>
+        <AuthLayout>
+          <div className="flex flex-1 items-center justify-center">
+            <div className="text-center">
+              <p className="text-destructive mb-4">Error loading dashboard</p>
+              <button onClick={() => window.location.reload()} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">
+                Retry
+              </button>
+            </div>
+          </div>
+        </AuthLayout>
+      </ProtectedRoute>
+    )
+  }
+
+  return (
+    <ProtectedRoute>
+      <AuthLayout>
+      <div className="flex flex-1 overflow-hidden min-h-[calc(100vh-56px)]">
         {/* Left Panel */}
         <div className="w-[480px] border-r border-border flex flex-col overflow-y-auto">
           {/* Score */}
@@ -106,16 +131,16 @@ export default function Dashboard() {
               className="text-[80px] font-bold text-primary leading-none mb-4"
               style={{ fontFamily: 'var(--font-climate)' }}
             >
-              2,840
+              {dashboardData?.score || 0}
             </div>
             <div className="flex items-center gap-4 mb-3">
               <div>
                 <p className="text-[10px] text-muted uppercase tracking-wide">Nivel</p>
-                <p className="text-xs font-bold text-foreground">Protocol Level 4</p>
+                <p className="text-xs font-bold text-foreground">{dashboardData?.level || 'Protocol Level 1'}</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted uppercase tracking-wide">Siguiente Rango</p>
-                <p className="text-xs font-bold text-foreground">92% al Siguiente Rango</p>
+                <p className="text-xs font-bold text-foreground">{dashboardData?.nextLevelProgress || '0%'}</p>
               </div>
             </div>
             {/* Progress bar */}
@@ -140,28 +165,30 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {rewards.map((r) => (
+                {dashboardData?.rewards?.map((reward: any) => (
                   <div
-                    key={r.id}
+                    key={reward.id}
                     className={`rounded-xl border p-3 flex flex-col gap-2 ${
-                      r.locked
+                      reward.locked
                         ? 'border-border opacity-40'
                         : 'border-border hover:border-primary/40 transition-colors'
                     }`}
                   >
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        r.locked ? 'bg-muted/10 text-muted' : 'bg-primary/20 text-primary'
+                        reward.locked ? 'bg-muted/10 text-muted' : 'bg-primary/20 text-primary'
                       }`}
                     >
-                      {r.icon}
+                      {rewardIcons[reward.name as keyof typeof rewardIcons]}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-foreground leading-tight">{r.name}</p>
-                      <p className="text-[10px] text-muted mt-0.5">{r.sub}</p>
+                      <p className="text-xs font-bold text-foreground leading-tight">{reward.name}</p>
+                      <p className="text-[10px] text-muted mt-0.5">{reward.sub}</p>
                     </div>
                   </div>
-                ))}
+                )) || (
+                  <p className="text-xs text-muted col-span-2">No rewards yet</p>
+                )}
               </div>
             </div>
 
@@ -176,28 +203,30 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="space-y-3">
-                {onChainActivity.map((item, i) => (
+                {dashboardData?.activity?.map((item: any, i: number) => (
                   <div
                     key={i}
                     className="flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 transition-colors"
                   >
                     <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {item.icon === 'check' && (
+                      {item.type === 'check_in' && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8FF8C" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                       )}
-                      {item.icon === 'mint' && (
+                      {item.type === 'mint' && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8FF8C" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                       )}
-                      {item.icon === 'transfer' && (
+                      {item.type === 'transfer' && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8FF8C" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>
                       )}
                     </div>
                     <div>
                       <p className="text-xs font-bold text-foreground">{item.label}</p>
-                      <p className="text-[10px] text-muted mt-0.5">{item.sub}</p>
+                      <p className="text-[10px] text-muted mt-0.5">{item.description}</p>
                     </div>
                   </div>
-                ))}
+                )) || (
+                  <p className="text-xs text-muted">No activity yet</p>
+                )}
               </div>
             </div>
           </div>
@@ -223,80 +252,92 @@ export default function Dashboard() {
 
           {/* Ticket list */}
           <div className="flex-1 px-6 space-y-4 pb-4 overflow-y-auto">
-            {tickets.map((ticket) => (
-              <Link
-                key={ticket.id}
-                href={`/inventory?ticket=${ticket.id}`}
-                className={`block group relative ${!ticket.active ? 'opacity-60 grayscale' : ''}`}
-              >
-                <div
-                  className="rounded-xl overflow-hidden transition-all hover:scale-[1.02]"
-                  style={{ background: ticket.bg }}
-                >
-                  <div className="p-6">
-                    {/* Top row */}
-                    <div className="flex justify-between items-start mb-8">
-                      <span
-                        className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em]"
-                        style={{
-                          color: ticket.active && ticket.bg === '#B8FF8C' ? '#143800' : ticket.fg,
-                          border: ticket.active && ticket.bg === '#B8FF8C' ? '1px solid #143800' : `1px solid ${ticket.fg}40`,
-                          background: ticket.active && ticket.bg !== '#B8FF8C' ? '#B8FF8C' : 'transparent',
-                        }}
-                      >
-                        {ticket.status}
-                      </span>
-                      <div className="text-right">
-                        <p className="text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-grotesk)', color: ticket.fg }}>
-                          {ticket.date}
-                        </p>
-                        <p className="text-xl font-black leading-none" style={{ fontFamily: 'var(--font-grotesk)', color: ticket.fg }}>
-                          {ticket.year}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Title */}
-                    <h3
-                      className="text-2xl uppercase leading-tight mb-4 whitespace-pre-line"
-                      style={{ fontFamily: 'var(--font-climate)', color: ticket.fg }}
+            {dashboardData?.tickets && dashboardData.tickets.length > 0 ? (
+              dashboardData.tickets.map((ticket: any) => {
+                const ticketColors: { [key: string]: { bg: string; fg: string } } = {
+                  active: { bg: '#B8FF8C', fg: '#143800' },
+                  checked_in: { bg: '#161D14', fg: '#B8FF8C' },
+                  used: { bg: '#161D14', fg: '#5E6659' },
+                }
+                const colors = ticketColors[ticket.status] || ticketColors.active
+                return (
+                  <Link
+                    key={ticket.id}
+                    href={`/inventory?ticket=${ticket.id}`}
+                    className={`block group relative ${ticket.status === 'used' ? 'opacity-60 grayscale' : ''}`}
+                  >
+                    <div
+                      className="rounded-xl overflow-hidden transition-all hover:scale-[1.02]"
+                      style={{ background: colors.bg }}
                     >
-                      {ticket.name}
-                    </h3>
+                      <div className="p-6">
+                        {/* Top row */}
+                        <div className="flex justify-between items-start mb-8">
+                          <span
+                            className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em]"
+                            style={{
+                              color: colors.fg,
+                              border: `1px solid ${colors.fg}40`,
+                              background: colors.bg === '#B8FF8C' ? '#14380010' : 'transparent',
+                            }}
+                          >
+                            {ticket.status.toUpperCase()}
+                          </span>
+                          <div className="text-right">
+                            <p className="text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-grotesk)', color: colors.fg }}>
+                              {new Date(ticket.event_date).toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }).toUpperCase()}
+                            </p>
+                            <p className="text-xl font-black leading-none" style={{ fontFamily: 'var(--font-grotesk)', color: colors.fg }}>
+                              {new Date(ticket.event_date).getFullYear()}
+                            </p>
+                          </div>
+                        </div>
 
-                    {/* Bottom row */}
-                    <div className="flex justify-between items-end pt-4 mt-8" style={{ borderTop: `1px solid ${ticket.fg}20` }}>
-                      <div>
-                        <p className="text-[10px] uppercase font-bold tracking-widest opacity-60" style={{ color: ticket.fg }}>
-                          Venue
-                        </p>
-                        <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-grotesk)', color: ticket.fg }}>
-                          {ticket.venue}
-                        </p>
-                      </div>
-                      {/* QR Icon */}
-                      <div
-                        className="w-12 h-12 flex items-center justify-center rounded"
-                        style={{ background: ticket.bg === '#B8FF8C' ? '#14380010' : '#B8FF8C10' }}
-                      >
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={ticket.fg} strokeWidth="1.5">
-                          <rect x="3" y="3" width="7" height="7" rx="1" />
-                          <rect x="14" y="3" width="7" height="7" rx="1" />
-                          <rect x="3" y="14" width="7" height="7" rx="1" />
-                          <rect x="14" y="14" width="3" height="3" />
-                          <rect x="18" y="14" width="3" height="3" />
-                          <rect x="14" y="18" width="3" height="3" />
-                          <rect x="18" y="18" width="3" height="3" />
-                        </svg>
+                        {/* Title */}
+                        <h3
+                          className="text-2xl uppercase leading-tight mb-4"
+                          style={{ fontFamily: 'var(--font-climate)', color: colors.fg }}
+                        >
+                          {ticket.event_name}
+                        </h3>
+
+                        {/* Bottom row */}
+                        <div className="flex justify-between items-end pt-4 mt-8" style={{ borderTop: `1px solid ${colors.fg}20` }}>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold tracking-widest opacity-60" style={{ color: colors.fg }}>
+                              Venue
+                            </p>
+                            <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-grotesk)', color: colors.fg }}>
+                              {ticket.venue}
+                            </p>
+                          </div>
+                          {/* QR Icon */}
+                          <div
+                            className="w-12 h-12 flex items-center justify-center rounded"
+                            style={{ background: colors.bg === '#B8FF8C' ? '#14380010' : '#B8FF8C10' }}
+                          >
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={colors.fg} strokeWidth="1.5">
+                              <rect x="3" y="3" width="7" height="7" rx="1" />
+                              <rect x="14" y="3" width="7" height="7" rx="1" />
+                              <rect x="3" y="14" width="7" height="7" rx="1" />
+                              <rect x="14" y="14" width="3" height="3" />
+                              <rect x="18" y="14" width="3" height="3" />
+                              <rect x="14" y="18" width="3" height="3" />
+                              <rect x="18" y="18" width="3" height="3" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-                {/* Decorative Notches */}
-                <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
-                <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
-              </Link>
-            ))}
+                    {/* Decorative Notches */}
+                    <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
+                    <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
+                  </Link>
+                )
+              })
+            ) : (
+              <p className="text-xs text-muted text-center py-8">No tickets yet</p>
+            )}
           </div>
 
           {/* Redimir button */}
@@ -311,7 +352,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </AuthLayout>
+    </ProtectedRoute>
   )
 }
 

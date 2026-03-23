@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { ProtectedRoute } from '@/components/protected-route'
 import { AuthLayout } from '@/components/layouts/auth-layout'
+import { useAuth } from '@/lib/hooks/use-auth'
 
 const rewards = [
   {
@@ -90,8 +92,11 @@ const tickets = [
 ]
 
 export default function Dashboard() {
+  const { user } = useAuth()
+
   return (
-    <AuthLayout>
+    <ProtectedRoute>
+      <AuthLayout>
       <div className="flex flex-1 overflow-hidden min-h-[calc(100vh-56px)]">
         {/* Left Panel */}
         <div className="w-[480px] border-r border-border flex flex-col overflow-y-auto">
@@ -310,6 +315,7 @@ export default function Dashboard() {
         </div>
       </div>
     </AuthLayout>
+    </ProtectedRoute>
   )
 }
 

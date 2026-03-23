@@ -1,19 +1,86 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 
 type ModalType = 'none' | 'login' | 'phone' | 'otp' | 'role'
 
+// LATAM country codes only
+const LATAM_COUNTRIES = [
+  { code: '+52', country: 'MX', name: 'Mexico', flag: '🇲🇽' },
+  { code: '+55', country: 'BR', name: 'Brasil', flag: '🇧🇷' },
+  { code: '+54', country: 'AR', name: 'Argentina', flag: '🇦🇷' },
+  { code: '+57', country: 'CO', name: 'Colombia', flag: '🇨🇴' },
+  { code: '+56', country: 'CL', name: 'Chile', flag: '🇨🇱' },
+  { code: '+51', country: 'PE', name: 'Peru', flag: '🇵🇪' },
+  { code: '+58', country: 'VE', name: 'Venezuela', flag: '🇻🇪' },
+  { code: '+593', country: 'EC', name: 'Ecuador', flag: '🇪🇨' },
+  { code: '+591', country: 'BO', name: 'Bolivia', flag: '🇧🇴' },
+  { code: '+595', country: 'PY', name: 'Paraguay', flag: '🇵🇾' },
+  { code: '+598', country: 'UY', name: 'Uruguay', flag: '🇺🇾' },
+  { code: '+506', country: 'CR', name: 'Costa Rica', flag: '🇨🇷' },
+  { code: '+507', country: 'PA', name: 'Panama', flag: '🇵🇦' },
+  { code: '+502', country: 'GT', name: 'Guatemala', flag: '🇬🇹' },
+  { code: '+503', country: 'SV', name: 'El Salvador', flag: '🇸🇻' },
+  { code: '+504', country: 'HN', name: 'Honduras', flag: '🇭🇳' },
+  { code: '+505', country: 'NI', name: 'Nicaragua', flag: '🇳🇮' },
+  { code: '+1809', country: 'DO', name: 'Rep. Dominicana', flag: '🇩🇴' },
+  { code: '+53', country: 'CU', name: 'Cuba', flag: '🇨🇺' },
+]
+
 export default function Home() {
   const router = useRouter()
+  const { connected, publicKey, disconnect } = useWallet()
+  const { setVisible: openWalletModal } = useWalletModal()
   const [activeModal, setActiveModal] = useState<ModalType>('none')
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', ''])
   const [phoneNumber, setPhoneNumber] = useState('')
   const [countryCode, setCountryCode] = useState('+52')
+  const [isLoading, setIsLoading] = useState(false)
+  const [otpError, setOtpError] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+  const [otpSent, setOtpSent] = useState(false)
+  const [resendTimer, setResendTimer] = useState(0)
+  const [showWalletMenu, setShowWalletMenu] = useState(false)
+  const walletMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close wallet menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (walletMenuRef.current && !walletMenuRef.current.contains(event.target as Node)) {
+        setShowWalletMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // When wallet connects, jump directly to role selector
+  useEffect(() => {
+    if (connected && publicKey) {
+      setActiveModal('role')
+    }
+  }, [connected, publicKey])
+
+  // Resend timer countdown
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendTimer])
+
+  const shortAddress = publicKey
+    ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
+    : null
+
+  const selectedCountry = LATAM_COUNTRIES.find(c => c.code === countryCode)
 
   const handleOtpChange = (index: number, value: string) => {
+    setOtpError(null)
     if (value.length <= 1 && /^\d*$/.test(value)) {
       const newValues = [...otpValues]
       newValues[index] = value
@@ -25,28 +92,128 @@ export default function Home() {
     }
   }
 
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-${index - 1}`)
+      prevInput?.focus()
+    }
+  }
+
   const handleLoginNext = () => {
+    setPhoneNumber('')
+    setPhoneError(null)
     setActiveModal('phone')
   }
 
-  const handlePhoneNext = () => {
-    if (phoneNumber.length >= 10) {
+  const handlePhoneNext = async () => {
+    if (phoneNumber.length < 10) {
+      setPhoneError('Ingresa un numero valido de al menos 10 digitos')
+      return
+    }
+    
+    setIsLoading(true)
+    setPhoneError(null)
+    
+    try {
+      // Simulate API call to send OTP
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setOtpSent(true)
+      setResendTimer(60)
+      setOtpValues(['', '', '', '', '', ''])
       setActiveModal('otp')
+    } catch {
+      setPhoneError('Error al enviar el codigo. Intenta de nuevo.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleOtpNext = () => {
-    setActiveModal('role')
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return
+    
+    setIsLoading(true)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      setResendTimer(60)
+      setOtpError(null)
+      setOtpValues(['', '', '', '', '', ''])
+    } catch {
+      setOtpError('Error al reenviar codigo')
+    } finally {
+      setIsLoading(false)
+    }
   }
+
+  const handleOtpVerify = async () => {
+    const code = otpValues.join('')
+    if (code.length !== 6) {
+      setOtpError('Ingresa el codigo completo de 6 digitos')
+      return
+    }
+
+    setIsLoading(true)
+    setOtpError(null)
+
+    try {
+      // Simulate OTP verification - accept any 6-digit code for demo
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // For demo: accept code "123456" or any code
+      if (code === '000000') {
+        setOtpError('Codigo incorrecto. Intenta de nuevo.')
+        setIsLoading(false)
+        return
+      }
+
+      setActiveModal('role')
+    } catch {
+      setOtpError('Error de verificacion. Intenta de nuevo.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleConnectWallet = () => {
+    openWalletModal(true)
+  }
+
+  const closeModal = useCallback(() => {
+    // Don't disconnect if closing from role modal (user already authenticated)
+    const shouldDisconnect = activeModal === 'login' || activeModal === 'phone' || activeModal === 'otp'
+    setActiveModal('none')
+    setPhoneNumber('')
+    setOtpValues(['', '', '', '', '', ''])
+    setOtpError(null)
+    setPhoneError(null)
+    setOtpSent(false)
+    if (shouldDisconnect && connected) disconnect()
+  }, [connected, disconnect, activeModal])
 
   const handleRoleSelect = (role: 'organizador' | 'asistente') => {
-    setActiveModal('none')
-    if (role === 'organizador') {
-      router.push('/organizer')
-    } else {
-      router.push('/dashboard')
-    }
+    setIsLoading(true)
+    // Small delay for UX feedback
+    setTimeout(() => {
+      setActiveModal('none')
+      if (role === 'organizador') {
+        router.push('/organizer')
+      } else {
+        router.push('/dashboard')
+      }
+    }, 300)
   }
+
+  // Shared close button component
+  const CloseButton = () => (
+    <button
+      onClick={closeModal}
+      className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-primary hover:bg-primary/10 transition-all z-20"
+      aria-label="Close"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  )
 
   return (
     <main className="min-h-screen bg-[#0E150C] relative">
@@ -74,12 +241,85 @@ export default function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <button
-            onClick={() => setActiveModal('login')}
-            className="px-5 py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors text-xs uppercase tracking-wide"
-          >
-            Login
-          </button>
+          
+          {/* Wallet Button with Dropdown */}
+          {connected && shortAddress ? (
+            <div className="relative" ref={walletMenuRef}>
+              <button
+                onClick={() => setShowWalletMenu(!showWalletMenu)}
+                className="px-4 py-2 font-bold rounded-lg transition-all text-xs uppercase tracking-wide flex items-center gap-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                {shortAddress}
+                <svg className={`w-3 h-3 transition-transform ${showWalletMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {showWalletMenu && (
+                <div className="absolute top-full right-0 mt-2 w-52 bg-[#161D14] border border-[#404A38]/50 rounded-xl shadow-xl overflow-hidden z-[60]">
+                  <div className="p-3 border-b border-[#404A38]/30">
+                    <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Connected Wallet</p>
+                    <p className="text-xs font-mono text-primary">{shortAddress}</p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setShowWalletMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      User Dashboard
+                    </Link>
+                    <Link
+                      href="/organizer"
+                      onClick={() => setShowWalletMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Organizer Dashboard
+                    </Link>
+                    <Link
+                      href="/tickets"
+                      onClick={() => setShowWalletMenu(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                      </svg>
+                      My Tickets
+                    </Link>
+                  </div>
+                  <div className="border-t border-[#404A38]/30 py-1">
+                    <button
+                      onClick={() => {
+                        setShowWalletMenu(false)
+                        disconnect()
+                      }}
+                      className="flex items-center gap-3 px-4 py-2.5 text-xs text-destructive hover:bg-destructive/10 transition-colors w-full text-left"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Disconnect Wallet
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setActiveModal('login')}
+              className="px-5 py-2 font-bold rounded-lg transition-all text-xs uppercase tracking-wide bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Login
+            </button>
+          )}
         </div>
       </header>
 
@@ -208,18 +448,19 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Modal Overlay */}
+          {/* Modal Overlay */}
       {activeModal !== 'none' && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
-          {/* Backdrop with blur */}
+          {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setActiveModal('none')}
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={closeModal}
           />
 
           {/* LOGIN MODAL */}
           {activeModal === 'login' && (
             <div className="relative z-10 bg-[#161D14] border border-[#2a3528] rounded-2xl p-8 w-[400px] shadow-2xl">
+              <CloseButton />
               <h2 className="text-2xl font-bold text-primary text-center mb-1" style={{ fontFamily: 'var(--font-climate)' }}>
                 ACCESS
               </h2>
@@ -230,9 +471,10 @@ export default function Home() {
                 Choose your verification method
               </p>
 
+              {/* Connect Wallet — real Solana adapter */}
               <button
-                onClick={handleLoginNext}
-                className="w-full px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm flex items-center justify-center gap-3 mb-4"
+                onClick={handleConnectWallet}
+                className="w-full px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 text-sm flex items-center justify-center gap-3 mb-3"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
@@ -256,14 +498,14 @@ export default function Home() {
                 <div className="flex-1 h-px bg-[#2a3528]"></div>
               </div>
 
-              <button className="w-full px-6 py-4 bg-[#1a2518] border border-[#2a3528] text-foreground font-bold rounded-xl hover:border-primary/30 transition-colors text-sm flex items-center justify-center gap-3 mb-3">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              <button
+                onClick={handleLoginNext}
+                className="w-full px-6 py-4 bg-[#1a2518] border border-[#2a3528] text-foreground font-bold rounded-xl hover:border-primary/30 transition-colors text-sm flex items-center justify-center gap-3 mb-3"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-                SIGN IN WITH GOOGLE
+                CONTINUE WITH PHONE
               </button>
 
               <button className="w-full px-6 py-4 bg-[#1a2518] border border-[#2a3528] text-foreground font-bold rounded-xl hover:border-primary/30 transition-colors text-sm flex items-center justify-center gap-3">
@@ -283,6 +525,7 @@ export default function Home() {
           {/* PHONE INPUT MODAL */}
           {activeModal === 'phone' && (
             <div className="relative z-10 bg-[#161D14] border border-[#2a3528] rounded-2xl p-8 w-[420px] shadow-2xl">
+              <CloseButton />
               {/* Back button */}
               <button
                 onClick={() => setActiveModal('login')}
@@ -301,6 +544,16 @@ export default function Home() {
                 Te enviaremos un codigo de verificacion para confirmar tu identidad.
               </p>
 
+              {/* LATAM Notice */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-2 mb-6">
+                <p className="text-[10px] text-primary flex items-center gap-2">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Disponible solo para paises de Latinoamerica
+                </p>
+              </div>
+
               {/* Phone input */}
               <div className="mb-6">
                 <label className="text-[10px] text-muted uppercase tracking-widest block mb-2">
@@ -309,38 +562,72 @@ export default function Home() {
                 <div className="flex gap-2">
                   <select
                     value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
-                    className="w-24 bg-[#0E150C] border border-[#2a3528] rounded-xl px-3 py-4 text-sm text-foreground focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer"
+                    onChange={(e) => {
+                      setCountryCode(e.target.value)
+                      setPhoneError(null)
+                    }}
+                    className="w-32 bg-[#0E150C] border border-[#2a3528] rounded-xl px-3 py-4 text-sm text-foreground focus:border-primary focus:outline-none transition-colors cursor-pointer"
                     style={{ fontFamily: 'var(--font-grotesk)' }}
                   >
-                    <option value="+52">+52</option>
-                    <option value="+1">+1</option>
-                    <option value="+34">+34</option>
-                    <option value="+44">+44</option>
-                    <option value="+55">+55</option>
+                    {LATAM_COUNTRIES.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.flag} {country.code}
+                      </option>
+                    ))}
                   </select>
                   <input
                     type="tel"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) => {
+                      setPhoneNumber(e.target.value.replace(/\D/g, ''))
+                      setPhoneError(null)
+                    }}
                     placeholder="55 1234 5678"
-                    className="flex-1 bg-[#0E150C] border border-[#2a3528] rounded-xl px-4 py-4 text-lg text-foreground placeholder:text-muted/50 focus:border-primary focus:outline-none transition-colors"
+                    className={`flex-1 bg-[#0E150C] border rounded-xl px-4 py-4 text-lg text-foreground placeholder:text-muted/50 focus:border-primary focus:outline-none transition-colors ${
+                      phoneError ? 'border-destructive' : 'border-[#2a3528]'
+                    }`}
                     style={{ fontFamily: 'var(--font-grotesk)' }}
-                    maxLength={10}
+                    maxLength={12}
                   />
                 </div>
+                {selectedCountry && (
+                  <p className="text-[10px] text-muted mt-2">
+                    {selectedCountry.flag} {selectedCountry.name}
+                  </p>
+                )}
               </div>
+
+              {/* Error message */}
+              {phoneError && (
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                  <p className="text-xs text-destructive flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {phoneError}
+                  </p>
+                </div>
+              )}
 
               {/* Submit button */}
               <button
                 onClick={handlePhoneNext}
-                disabled={phoneNumber.length < 10}
-                className="w-full px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={phoneNumber.length < 10 || isLoading}
+                className="w-full px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-primary/20"
               >
-                Enviar Codigo
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    Enviar Codigo
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </>
+                )}
               </button>
 
               <p className="text-[9px] text-muted text-center mt-6 leading-relaxed">
@@ -352,6 +639,8 @@ export default function Home() {
           {/* OTP MODAL */}
           {activeModal === 'otp' && (
             <div className="relative z-10 bg-[#0E150C] border border-[#2a3528] rounded-2xl overflow-hidden w-[900px] shadow-2xl flex">
+              {/* X close */}
+              <CloseButton />
               {/* Left Panel */}
               <div className="flex-1 p-8" style={{ background: 'radial-gradient(circle at 30% 70%, rgba(139, 230, 85, 0.15) 0%, transparent 50%)' }}>
                 {/* Back + Header */}
@@ -391,21 +680,37 @@ export default function Home() {
                 </h1>
 
                 <p className="text-sm text-muted mb-2">
-                  {"We've sent a 6-digit code to your phone"} <span className="text-primary">{countryCode}</span>
+                  Enviamos un codigo de 6 digitos a <span className="text-primary">{selectedCountry?.flag} {countryCode}</span>
                 </p>
-                <p className="text-sm text-primary mb-8">****{phoneNumber.slice(-4)}</p>
+                <p className="text-sm text-primary mb-8 font-mono">****{phoneNumber.slice(-4)}</p>
+
+                {/* OTP Error */}
+                {otpError && (
+                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <p className="text-xs text-destructive flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {otpError}
+                    </p>
+                  </div>
+                )}
 
                 {/* OTP Inputs */}
-                <div className="flex gap-3 mb-8">
+                <div className="flex gap-3 mb-6">
                   {otpValues.map((value, index) => (
                     <input
                       key={index}
                       id={`otp-${index}`}
                       type="text"
+                      inputMode="numeric"
                       maxLength={1}
                       value={value}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
-                      className="w-14 h-14 bg-[#161D14] border-2 border-[#2a3528] rounded-xl text-center text-2xl font-bold text-primary focus:border-primary focus:outline-none transition-colors"
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      className={`w-14 h-14 bg-[#161D14] border-2 rounded-xl text-center text-2xl font-bold text-primary focus:border-primary focus:outline-none transition-colors ${
+                        otpError ? 'border-destructive' : value ? 'border-primary/50' : 'border-[#2a3528]'
+                      }`}
                       style={{ fontFamily: 'var(--font-grotesk)' }}
                     />
                   ))}
@@ -414,15 +719,35 @@ export default function Home() {
                 {/* Buttons */}
                 <div className="flex gap-4 mb-8">
                   <button
-                    onClick={handleOtpNext}
-                    className="flex-1 px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm flex items-center justify-center gap-2"
+                    onClick={handleOtpVerify}
+                    disabled={otpValues.join('').length !== 6 || isLoading}
+                    className="flex-1 px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-primary/20"
                   >
-                    Verify & Link Wallet
-                    <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                        Verificando...
+                      </>
+                    ) : (
+                      <>
+                        Verificar Codigo
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </>
+                    )}
                   </button>
-                  <button className="px-6 py-4 text-muted hover:text-primary transition-colors text-sm flex items-center gap-2 border border-[#2a3528] rounded-xl">
-                    Resend Code
-                    <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] rounded">30s</span>
+                  <button
+                    onClick={handleResendOtp}
+                    disabled={resendTimer > 0 || isLoading}
+                    className={`px-6 py-4 text-sm flex items-center gap-2 border border-[#2a3528] rounded-xl transition-colors ${
+                      resendTimer > 0 ? 'text-muted cursor-not-allowed' : 'text-muted hover:text-primary hover:border-primary/30'
+                    }`}
+                  >
+                    Reenviar
+                    {resendTimer > 0 && (
+                      <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] rounded font-mono">{resendTimer}s</span>
+                    )}
                   </button>
                 </div>
 
@@ -504,10 +829,18 @@ export default function Home() {
           {/* ROLE SELECTOR MODAL */}
           {activeModal === 'role' && (
             <div className="relative z-10 bg-[#0E150C] border border-[#2a3528] rounded-2xl p-8 w-[700px] shadow-2xl">
+              <CloseButton />
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-lg font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>LUMINOUS</h3>
-                <span className="text-[10px] text-muted uppercase tracking-widest">Solana Protocol v4.0</span>
+                <h3 className="text-lg font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>RANTI PROTOCOL</h3>
+                {shortAddress ? (
+                  <span className="text-[10px] font-mono bg-primary/10 border border-primary/20 text-primary px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                    {shortAddress}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted uppercase tracking-widest">Solana Protocol v4.0</span>
+                )}
               </div>
 
               {/* Title */}
@@ -523,55 +856,79 @@ export default function Home() {
                 {/* Organizador */}
                 <button
                   onClick={() => handleRoleSelect('organizador')}
-                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-primary/50 transition-all group"
+                  disabled={isLoading}
+                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary">
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <span className="text-[10px] text-muted uppercase tracking-widest">REF: 00-[01]</span>
+                    <svg className="w-5 h-5 text-muted group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-primary mb-3" style={{ fontFamily: 'var(--font-climate)' }}>
+                  <h3 className="text-2xl font-bold text-primary mb-3 group-hover:text-primary/90" style={{ fontFamily: 'var(--font-climate)' }}>
                     ORGANIZADOR
                   </h3>
-                  <p className="text-xs text-muted leading-relaxed">
-                    Crea eventos, gestiona tickets y<br/>analiza metricas de lealtad.
+                  <p className="text-xs text-muted leading-relaxed mb-4">
+                    Crea eventos, gestiona tickets y analiza metricas de lealtad.
                   </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-[9px] px-2 py-1 bg-primary/10 text-primary rounded border border-primary/20">Crear Eventos</span>
+                    <span className="text-[9px] px-2 py-1 bg-primary/10 text-primary rounded border border-primary/20">Analytics</span>
+                    <span className="text-[9px] px-2 py-1 bg-primary/10 text-primary rounded border border-primary/20">Mint NFTs</span>
+                  </div>
                 </button>
 
-                {/* Asistente */}
+                {/* Asistente/Usuario */}
                 <button
                   onClick={() => handleRoleSelect('asistente')}
-                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-secondary/50 transition-all group"
+                  disabled={isLoading}
+                  className="bg-[#161D14] border border-[#2a3528] rounded-2xl p-6 text-left hover:border-secondary/50 hover:shadow-lg hover:shadow-secondary/10 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center text-secondary">
+                    <div className="w-10 h-10 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
-                    <span className="text-[10px] text-muted uppercase tracking-widest">ACE: 01-[47]</span>
+                    <svg className="w-5 h-5 text-muted group-hover:text-secondary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-secondary mb-3" style={{ fontFamily: 'var(--font-climate)' }}>
+                  <h3 className="text-2xl font-bold text-secondary mb-3 group-hover:text-secondary/90" style={{ fontFamily: 'var(--font-climate)' }}>
                     ASISTENTE
                   </h3>
-                  <p className="text-xs text-muted leading-relaxed">
-                    Explora eventos, asegura tus<br/>accesos y construye tu reputacion.
+                  <p className="text-xs text-muted leading-relaxed mb-4">
+                    Explora eventos, asegura tus accesos y construye tu reputacion.
                   </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-[9px] px-2 py-1 bg-secondary/10 text-secondary rounded border border-secondary/20">Mis Tickets</span>
+                    <span className="text-[9px] px-2 py-1 bg-secondary/10 text-secondary rounded border border-secondary/20">Rewards</span>
+                    <span className="text-[9px] px-2 py-1 bg-secondary/10 text-secondary rounded border border-secondary/20">Check-in</span>
+                  </div>
                 </button>
               </div>
+
+              {/* Loading indicator when selecting role */}
+              {isLoading && (
+                <div className="flex items-center justify-center gap-3 mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                  <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                  <span className="text-sm text-primary">Redirigiendo al dashboard...</span>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="flex items-center justify-between text-[10px] text-muted pt-4 border-t border-[#2a3528]">
                 <span className="flex items-center gap-2">
-                  <span className="text-primary">---</span>
-                  SOLANA MAINNET STATUS: ACTIVE
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                  SOLANA {(process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet').toUpperCase()}: ACTIVE
                 </span>
                 <div className="flex items-center gap-6">
-                  <span>PRIVACY: PROTOCOL...</span>
-                  <span>FOUND: 04 <span className="text-primary">v2.029</span></span>
+                  {shortAddress && <span className="text-primary font-mono">{shortAddress}</span>}
+                  <span>RANTI <span className="text-primary">v2.0</span></span>
                 </div>
               </div>
             </div>

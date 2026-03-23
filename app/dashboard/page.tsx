@@ -222,74 +222,79 @@ export default function Dashboard() {
           </div>
 
           {/* Ticket list */}
-          <div className="flex-1 px-6 space-y-3 pb-4">
+          <div className="flex-1 px-6 space-y-4 pb-4 overflow-y-auto">
             {tickets.map((ticket) => (
               <Link
                 key={ticket.id}
                 href={`/inventory?ticket=${ticket.id}`}
-                className="block group"
+                className={`block group relative ${!ticket.active ? 'opacity-60 grayscale' : ''}`}
               >
                 <div
-                  className="rounded-2xl overflow-hidden border border-border group-hover:border-primary/40 transition-all"
+                  className="rounded-xl overflow-hidden transition-all hover:scale-[1.02]"
                   style={{ background: ticket.bg }}
                 >
-                  <div className="px-5 py-4 flex items-start justify-between">
-                    {/* Left */}
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="text-[10px] font-bold px-2 py-0.5 rounded border"
-                          style={{
-                            color: ticket.active ? ticket.bg : ticket.fg,
-                            borderColor: ticket.active ? (ticket.active && ticket.bg === '#B8FF8C' ? '#0E150C40' : '#B8FF8C40') : '#5E665940',
-                            background: ticket.active ? (ticket.bg === '#B8FF8C' ? '#0E150C20' : '#B8FF8C20') : '#5E665920',
-                          }}
-                        >
-                          {ticket.status}
-                        </span>
-                      </div>
-                      <h3
-                        className="text-2xl font-bold leading-tight mt-2 whitespace-pre-line"
-                        style={{ fontFamily: 'var(--font-climate)', color: ticket.fg }}
+                  <div className="p-6">
+                    {/* Top row */}
+                    <div className="flex justify-between items-start mb-8">
+                      <span
+                        className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em]"
+                        style={{
+                          color: ticket.active && ticket.bg === '#B8FF8C' ? '#143800' : ticket.fg,
+                          border: ticket.active && ticket.bg === '#B8FF8C' ? '1px solid #143800' : `1px solid ${ticket.fg}40`,
+                          background: ticket.active && ticket.bg !== '#B8FF8C' ? '#B8FF8C' : 'transparent',
+                        }}
                       >
-                        {ticket.name}
-                      </h3>
-                      <div className="mt-2">
-                        <p className="text-[9px] font-bold tracking-widest opacity-60" style={{ color: ticket.fg }}>
-                          VENUE
+                        {ticket.status}
+                      </span>
+                      <div className="text-right">
+                        <p className="text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-grotesk)', color: ticket.fg }}>
+                          {ticket.date}
                         </p>
-                        <p className="text-[11px] font-bold" style={{ color: ticket.fg }}>
-                          {ticket.venue}
+                        <p className="text-xl font-black leading-none" style={{ fontFamily: 'var(--font-grotesk)', color: ticket.fg }}>
+                          {ticket.year}
                         </p>
                       </div>
                     </div>
 
-                    {/* Right */}
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="text-right">
-                        <p className="text-2xl font-bold leading-none" style={{ fontFamily: 'var(--font-climate)', color: ticket.fg }}>
-                          {ticket.date}
+                    {/* Title */}
+                    <h3
+                      className="text-2xl uppercase leading-tight mb-4 whitespace-pre-line"
+                      style={{ fontFamily: 'var(--font-climate)', color: ticket.fg }}
+                    >
+                      {ticket.name}
+                    </h3>
+
+                    {/* Bottom row */}
+                    <div className="flex justify-between items-end pt-4 mt-8" style={{ borderTop: `1px solid ${ticket.fg}20` }}>
+                      <div>
+                        <p className="text-[10px] uppercase font-bold tracking-widest opacity-60" style={{ color: ticket.fg }}>
+                          Venue
                         </p>
-                        <p className="text-sm font-bold" style={{ color: ticket.fg, opacity: 0.7 }}>
-                          {ticket.year}
+                        <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-grotesk)', color: ticket.fg }}>
+                          {ticket.venue}
                         </p>
                       </div>
-                      {/* QR placeholder */}
+                      {/* QR Icon */}
                       <div
-                        className="w-10 h-10 rounded grid grid-cols-4 grid-rows-4 gap-px p-1 mt-2"
-                        style={{ background: ticket.active && ticket.bg === '#B8FF8C' ? '#0E150C20' : '#B8FF8C20' }}
+                        className="w-12 h-12 flex items-center justify-center rounded"
+                        style={{ background: ticket.bg === '#B8FF8C' ? '#14380010' : '#B8FF8C10' }}
                       >
-                        {Array.from({ length: 16 }).map((_, i) => (
-                          <div
-                            key={i}
-                            className="rounded-sm"
-                            style={{ background: [0,1,4,5,2,7,8,11,14,15].includes(i) ? ticket.fg : 'transparent', opacity: 0.6 }}
-                          />
-                        ))}
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={ticket.fg} strokeWidth="1.5">
+                          <rect x="3" y="3" width="7" height="7" rx="1" />
+                          <rect x="14" y="3" width="7" height="7" rx="1" />
+                          <rect x="3" y="14" width="7" height="7" rx="1" />
+                          <rect x="14" y="14" width="3" height="3" />
+                          <rect x="18" y="14" width="3" height="3" />
+                          <rect x="14" y="18" width="3" height="3" />
+                          <rect x="18" y="18" width="3" height="3" />
+                        </svg>
                       </div>
                     </div>
                   </div>
                 </div>
+                {/* Decorative Notches */}
+                <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
+                <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
               </Link>
             ))}
           </div>

@@ -8,79 +8,184 @@ body {
 }
 
 :root {
+  /* Surface colors */
   --background: #0E150C;
-  --foreground: #B8FF8C;
-  --card: #161D14;
-  --card-foreground: #B8FF8C;
-  --popover: #1A1F18;
-  --popover-foreground: #B8FF8C;
+  --surface: #0E150C;
+  --surface-dim: #0E150C;
+  --surface-bright: #343B30;
+  --surface-container-lowest: #091007;
+  --surface-container-low: #161D14;
+  --surface-container: #1A2217;
+  --surface-container-high: #252C21;
+  --surface-container-highest: #2F372C;
+  --surface-variant: #2F372C;
+  
+  /* Primary colors */
   --primary: #B8FF8C;
-  --primary-foreground: #143800;
+  --primary-container: #8BE655;
+  --primary-fixed: #9DFA66;
+  --primary-fixed-dim: #82DC4D;
+  --on-primary: #143800;
+  --on-primary-container: #2A6500;
+  --on-primary-fixed: #092100;
+  --inverse-primary: #2D6C00;
+  
+  /* Secondary colors */
   --secondary: #4ADDB4;
+  --secondary-container: #00B992;
+  --secondary-fixed: #6CFACF;
+  --secondary-fixed-dim: #4ADDB4;
+  --on-secondary: #00382A;
+  --on-secondary-container: #004232;
+  --on-secondary-fixed: #002117;
+  
+  /* Tertiary colors */
+  --tertiary: #ABFFBF;
+  --tertiary-container: #59EA8E;
+  --tertiary-fixed: #6EFD9F;
+  --tertiary-fixed-dim: #4EE086;
+  --on-tertiary: #00391A;
+  --on-tertiary-container: #006734;
+  
+  /* On-surface colors */
+  --foreground: #DDE5D5;
+  --on-surface: #DDE5D5;
+  --on-background: #DDE5D5;
+  --on-surface-variant: #C0CAB3;
+  --inverse-on-surface: #2B3327;
+  --inverse-surface: #DDE5D5;
+  
+  /* Outline colors */
+  --outline: #8A947F;
+  --outline-variant: #404A38;
+  --border: #404A38;
+  
+  /* Error colors */
+  --error: #FFB4AB;
+  --error-container: #93000A;
+  --on-error: #690005;
+  --on-error-container: #FFDAD6;
+  --destructive: #FFB4AB;
+  --destructive-foreground: #690005;
+  
+  /* Utility mappings */
+  --card: #161D14;
+  --card-foreground: #DDE5D5;
+  --popover: #1A2217;
+  --popover-foreground: #DDE5D5;
+  --primary-foreground: #143800;
   --secondary-foreground: #0E150C;
   --muted: #C0CAB3;
-  --muted-foreground: #5E6659;
+  --muted-foreground: #8A947F;
   --accent: #8BE655;
   --accent-foreground: #143800;
-  --destructive: #FF6B6B;
-  --destructive-foreground: #FFFFFF;
-  --border: rgba(64, 74, 56, 0.1);
   --input: #252C21;
   --ring: #B8FF8C;
-  --chart-1: #55E68B;
-  --chart-2: #C8E655;
-  --chart-3: #4ADDB4;
+  --surface-tint: #82DC4D;
+  
+  /* Charts */
+  --chart-1: #B8FF8C;
+  --chart-2: #4ADDB4;
+  --chart-3: #8BE655;
   --chart-4: #9DFA66;
-  --chart-5: #8BE655;
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --chart-5: #6EFD9F;
+  
+  --radius: 0.5rem;
+  --sidebar: #161D14;
+  --sidebar-foreground: #DDE5D5;
+  --sidebar-primary: #B8FF8C;
+  --sidebar-primary-foreground: #143800;
+  --sidebar-accent: #252C21;
+  --sidebar-accent-foreground: #DDE5D5;
+  --sidebar-border: #404A38;
+  --sidebar-ring: #B8FF8C;
 }
 
 .dark {
+  /* Same as root - this is a dark-first design */
   --background: #0E150C;
-  --foreground: #B8FF8C;
-  --card: #161D14;
-  --card-foreground: #B8FF8C;
-  --popover: #1A1F18;
-  --popover-foreground: #B8FF8C;
+  --surface: #0E150C;
+  --surface-dim: #0E150C;
+  --surface-bright: #343B30;
+  --surface-container-lowest: #091007;
+  --surface-container-low: #161D14;
+  --surface-container: #1A2217;
+  --surface-container-high: #252C21;
+  --surface-container-highest: #2F372C;
+  --surface-variant: #2F372C;
   --primary: #B8FF8C;
-  --primary-foreground: #143800;
+  --primary-container: #8BE655;
+  --on-primary: #143800;
+  --on-primary-container: #2A6500;
   --secondary: #4ADDB4;
+  --secondary-container: #00B992;
+  --on-secondary: #00382A;
+  --tertiary: #ABFFBF;
+  --tertiary-container: #59EA8E;
+  --on-tertiary: #00391A;
+  --foreground: #DDE5D5;
+  --on-surface: #DDE5D5;
+  --on-surface-variant: #C0CAB3;
+  --outline: #8A947F;
+  --outline-variant: #404A38;
+  --border: #404A38;
+  --error: #FFB4AB;
+  --destructive: #FFB4AB;
+  --destructive-foreground: #690005;
+  --card: #161D14;
+  --card-foreground: #DDE5D5;
+  --popover: #1A2217;
+  --popover-foreground: #DDE5D5;
+  --primary-foreground: #143800;
   --secondary-foreground: #0E150C;
   --muted: #C0CAB3;
-  --muted-foreground: #5E6659;
+  --muted-foreground: #8A947F;
   --accent: #8BE655;
   --accent-foreground: #143800;
-  --destructive: #FF6B6B;
-  --destructive-foreground: #FFFFFF;
-  --border: rgba(64, 74, 56, 0.1);
   --input: #252C21;
   --ring: #B8FF8C;
-  --chart-1: #55E68B;
-  --chart-2: #C8E655;
-  --chart-3: #4ADDB4;
+  --chart-1: #B8FF8C;
+  --chart-2: #4ADDB4;
+  --chart-3: #8BE655;
   --chart-4: #9DFA66;
-  --chart-5: #8BE655;
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --chart-5: #6EFD9F;
+  --sidebar: #161D14;
+  --sidebar-foreground: #DDE5D5;
+  --sidebar-primary: #B8FF8C;
+  --sidebar-primary-foreground: #143800;
+  --sidebar-accent: #252C21;
+  --sidebar-accent-foreground: #DDE5D5;
+  --sidebar-border: #404A38;
+  --sidebar-ring: #B8FF8C;
 }
 
 @theme inline {
   --font-sans: var(--font-poppins);
-  --font-mono: var(--font-poppins);
+  --font-mono: var(--font-grotesk);
+  
+  /* Surface container colors for Figma design system */
+  --color-surface: var(--surface);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-variant: var(--surface-variant);
+  
+  /* On-surface colors */
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  
+  /* Primary variants */
+  --color-primary-container: var(--primary-container);
+  --color-on-primary: var(--on-primary);
+  --color-on-primary-container: var(--on-primary-container);
+  
+  /* Outline colors */
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

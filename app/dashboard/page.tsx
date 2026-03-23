@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/protected-route'
 import { AuthLayout } from '@/components/layouts/auth-layout'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useDashboard } from '@/lib/hooks/use-dashboard'
+import { TicketDetailModal } from '@/components/ticket-detail-modal'
 import type { DashboardData } from '@/lib/types'
 
 const rewardIcons = {
@@ -77,6 +78,7 @@ export default function Dashboard() {
   const { user } = useAuth()
   const { data: dashboardData, loading, error } = useDashboard()
   const [rewardStatus, setRewardStatus] = useState<any>(null)
+  const [selectedTicket, setSelectedTicket] = useState<any>(null)
 
   useEffect(() => {
     if (dashboardData) {
@@ -261,10 +263,10 @@ export default function Dashboard() {
                 }
                 const colors = ticketColors[ticket.status] || ticketColors.active
                 return (
-                  <Link
+                  <div
                     key={ticket.id}
-                    href={`/inventory?ticket=${ticket.id}`}
-                    className={`block group relative ${ticket.status === 'used' ? 'opacity-60 grayscale' : ''}`}
+                    onClick={() => setSelectedTicket(ticket)}
+                    className={`block group relative cursor-pointer ${ticket.status === 'used' ? 'opacity-60 grayscale' : ''}`}
                   >
                     <div
                       className="rounded-xl overflow-hidden transition-all hover:scale-[1.02]"
@@ -332,7 +334,7 @@ export default function Dashboard() {
                     {/* Decorative Notches */}
                     <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
                     <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
-                  </Link>
+                  </div>
                 )
               })
             ) : (
@@ -352,6 +354,18 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Ticket Detail Modal */}
+      {selectedTicket && (
+        <TicketDetailModal
+          ticket={selectedTicket}
+          onClose={() => setSelectedTicket(null)}
+          onActivate={async () => {
+            // TODO: Implement check-in logic
+            console.log('Activating ticket:', selectedTicket.id)
+          }}
+        />
+      )}
     </AuthLayout>
     </ProtectedRoute>
   )

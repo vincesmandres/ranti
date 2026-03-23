@@ -2,33 +2,48 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useOrganizer } from '@/lib/hooks/use-organizer'
 
 type ModalType = 'none' | 'create-event' | 'success'
 
-const communityMembers = [
-  { name: 'Alice Rivers', wallet: '0x3B...xPD3', participation: 4, status: 'Verified' },
-  { name: 'Satoshi Nakamoto', wallet: 'Lx61...PD24', participation: 5, status: 'Verified' },
-  { name: 'Elena Vance', wallet: '7Pft...QA2', participation: 1, status: 'Syncing' },
-  { name: 'Marcus Holloway', wallet: 'xMG2...4R0x', participation: 3, status: 'Verified' },
-  { name: 'Sarah Connor', wallet: 'T800...8kyn', participation: 2, status: 'Verified' },
-]
-
-const events = [
-  { id: 1, name: 'NEON\nGENESIS', status: 'ACTIVE', image: '/placeholder.svg?height=120&width=200' },
-  { id: 2, name: 'SOLANA\nSUMMIT', status: 'PAST', image: '/placeholder.svg?height=120&width=200' },
-  { id: 3, name: 'VOXEL ART\nEXPO', status: 'ACTIVE', image: '/placeholder.svg?height=120&width=200' },
-]
+interface TransactionData {
+  user_signature: string
+  organizer_signature: string
+  asset_id: string
+  transaction_hash: string
+}
 
 export default function OrganizerDashboard() {
+  const { data, loading, error, createEvent } = useOrganizer()
   const [activeModal, setActiveModal] = useState<ModalType>('none')
   const [activeNav, setActiveNav] = useState('overview')
   const [eventName, setEventName] = useState('')
   const [eventId, setEventId] = useState('')
   const [walletAddress, setWalletAddress] = useState('')
   const [description, setDescription] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
+  const [transactionData, setTransactionData] = useState<TransactionData | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
 
-  const handleCreateEvent = () => {
-    setActiveModal('success')
+  const handleCreateEvent = async () => {
+    setIsCreating(true)
+    setCreateError(null)
+    
+    const result = await createEvent({
+      name: eventName,
+      event_id: eventId,
+      wallet_address: walletAddress || undefined,
+      description: description || undefined
+    })
+
+    setIsCreating(false)
+
+    if (result.success && result.transaction) {
+      setTransactionData(result.transaction)
+      setActiveModal('success')
+    } else {
+      setCreateError(result.error || 'Failed to create event')
+    }
   }
 
   const handleCloseSuccess = () => {
@@ -37,6 +52,36 @@ export default function OrganizerDashboard() {
     setEventId('')
     setWalletAddress('')
     setDescription('')
+    setTransactionData(null)
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-muted">Loading organizer data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -154,34 +199,42 @@ export default function OrganizerDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {communityMembers.map((member, i) => (
-                      <tr key={i} className="border-b border-[#404A38]/5 hover:bg-[#1A2217]/50 transition-colors">
-                        <td className="px-5 py-3">
-                          <span className="text-xs font-bold text-primary">{member.name}</span>
-                        </td>
-                        <td className="px-5 py-3">
-                          <code className="text-xs text-muted font-mono">{member.wallet}</code>
-                        </td>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: 5 }).map((_, j) => (
-                              <div
-                                key={j}
-                                className={`w-2 h-2 rounded-full ${j < member.participation ? 'bg-primary' : 'bg-[#404A38]/30'}`}
-                              />
-                            ))}
-                            <span className="text-[10px] text-muted ml-2">Level {member.participation}</span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3">
-                          <span className={`text-[10px] font-bold uppercase tracking-wide ${
-                            member.status === 'Verified' ? 'text-primary' : 'text-secondary'
-                          }`}>
-                            {member.status}
-                          </span>
+                    {data?.members && data.members.length > 0 ? (
+                      data.members.map((member, i) => (
+                        <tr key={i} className="border-b border-[#404A38]/5 hover:bg-[#1A2217]/50 transition-colors">
+                          <td className="px-5 py-3">
+                            <span className="text-xs font-bold text-primary">{member.name}</span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <code className="text-xs text-muted font-mono">{member.wallet}</code>
+                          </td>
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: 5 }).map((_, j) => (
+                                <div
+                                  key={j}
+                                  className={`w-2 h-2 rounded-full ${j < member.participation ? 'bg-primary' : 'bg-[#404A38]/30'}`}
+                                />
+                              ))}
+                              <span className="text-[10px] text-muted ml-2">Level {member.participation}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={`text-[10px] font-bold uppercase tracking-wide ${
+                              member.status === 'Verified' ? 'text-primary' : member.status === 'Syncing' ? 'text-secondary animate-pulse' : 'text-muted'
+                            }`}>
+                              {member.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="px-5 py-8 text-center text-muted text-xs">
+                          No community members yet
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -190,30 +243,48 @@ export default function OrganizerDashboard() {
 
           {/* Right Column - Events */}
           <div className="w-80 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-foreground" style={{ fontFamily: 'var(--font-climate)' }}>MIS EVENTOS</h3>
-              <button className="text-[10px] text-primary font-bold uppercase tracking-wide hover:underline">See All</button>
-            </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-foreground" style={{ fontFamily: 'var(--font-climate)' }}>Comunidad</h3>
+                    <span className="text-[10px] text-muted">{data?.stats?.totalMembers || 0} TOTAL MEMBERS</span>
+                  </div>
+                </div>
 
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className="bg-[#161D14] rounded-xl border border-[#404A38]/10 overflow-hidden hover:border-primary/30 transition-all cursor-pointer group"
-              >
-                <div className="h-28 bg-gradient-to-br from-[#1A2217] to-[#252C21] relative">
-                  <span className={`absolute top-3 left-3 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${
-                    event.status === 'ACTIVE' ? 'bg-primary text-[#143800]' : 'bg-[#404A38] text-muted'
-                  }`}>
-                    {event.status}
-                  </span>
+            {data?.events && data.events.length > 0 ? (
+              data.events.map((event) => (
+                <div
+                  key={event.id}
+                  className="bg-[#161D14] rounded-xl border border-[#404A38]/10 overflow-hidden hover:border-primary/30 transition-all cursor-pointer group"
+                >
+                  <div className="h-28 bg-gradient-to-br from-[#1A2217] to-[#252C21] relative">
+                    <span className={`absolute top-3 left-3 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${
+                      event.status === 'ACTIVE' ? 'bg-primary text-[#143800]' : 'bg-[#404A38] text-muted'
+                    }`}>
+                      {event.status}
+                    </span>
+                    <div className="absolute bottom-3 right-3 text-right">
+                      <p className="text-xs text-muted">{event.tickets_sold}/{event.max_capacity}</p>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h4 className="text-lg font-bold text-primary leading-tight whitespace-pre-line" style={{ fontFamily: 'var(--font-climate)' }}>
+                      {event.name}
+                    </h4>
+                    <p className="text-[10px] text-muted mt-1">{event.venue}</p>
+                  </div>
                 </div>
-                <div className="p-4">
-                  <h4 className="text-lg font-bold text-primary leading-tight whitespace-pre-line" style={{ fontFamily: 'var(--font-climate)' }}>
-                    {event.name}
-                  </h4>
-                </div>
+              ))
+            ) : (
+              <div className="bg-[#161D14] rounded-xl border border-dashed border-[#404A38]/30 p-8 text-center">
+                <p className="text-muted text-xs mb-2">No events yet</p>
+                <button
+                  onClick={() => setActiveModal('create-event')}
+                  className="text-primary text-xs font-bold hover:underline"
+                >
+                  Create your first event
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </main>
@@ -318,14 +389,29 @@ export default function OrganizerDashboard() {
 
             {/* Footer */}
             <div className="px-8 pb-8">
+              {createError && (
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-xs text-center">
+                  {createError}
+                </div>
+              )}
               <button
                 onClick={handleCreateEvent}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary text-[#143800] font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm"
+                disabled={isCreating || !eventName || !eventId}
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary text-[#143800] font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                FIRMAR Y CREAR EVENTO
+                {isCreating ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-[#143800]/30 border-t-[#143800] rounded-full animate-spin"></div>
+                    CREATING...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    FIRMAR Y CREAR EVENTO
+                  </>
+                )}
               </button>
               <p className="text-[9px] text-muted text-center mt-4">
                 By signing, you authorize the immutable digital record to be created and logged on the Solana network.
@@ -376,11 +462,11 @@ export default function OrganizerDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[#161D14] p-4 rounded-lg">
                   <span className="text-[10px] text-muted uppercase tracking-widest block mb-2">User Signature</span>
-                  <code className="text-xs text-foreground/80 font-mono">0x8B...E655...55BC</code>
+                  <code className="text-xs text-foreground/80 font-mono">{transactionData?.user_signature || '0x8B...E655...55BC'}</code>
                 </div>
                 <div className="bg-[#161D14] p-4 rounded-lg">
                   <span className="text-[10px] text-muted uppercase tracking-widest block mb-2">Organizer Signature</span>
-                  <code className="text-xs text-foreground/80 font-mono">0x4A...DD8C...1A22</code>
+                  <code className="text-xs text-foreground/80 font-mono">{transactionData?.organizer_signature || '0x4A...DD8C...1A22'}</code>
                 </div>
               </div>
 
@@ -388,22 +474,30 @@ export default function OrganizerDashboard() {
               <div className="bg-[#161D14] p-4 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] text-muted uppercase tracking-widest">Asset ID (Compressed NFT)</span>
-                  <button className="text-muted hover:text-primary transition-colors">
+                  <button 
+                    onClick={() => navigator.clipboard.writeText(transactionData?.asset_id || '')}
+                    className="text-muted hover:text-primary transition-colors"
+                  >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                   </button>
                 </div>
-                <code className="text-sm text-secondary font-mono">RP-EVT-7729-QLX-990-SOL-LMN-0042</code>
+                <code className="text-sm text-secondary font-mono">{transactionData?.asset_id || 'RP-EVT-0000-XXX-000-SOL-XXX-0000'}</code>
               </div>
 
               {/* Transaction Hash */}
               <div className="flex items-center justify-between bg-[#161D14] p-4 rounded-lg">
                 <div>
                   <span className="text-[10px] text-muted uppercase tracking-widest block mb-1">Transaction Hash</span>
-                  <code className="text-xs text-foreground/60 font-mono">5Sj...9kP...2vR...LxM...8uQ...1zY...0wP</code>
+                  <code className="text-xs text-foreground/60 font-mono">{transactionData?.transaction_hash || '0x...'}</code>
                 </div>
-                <a href="#" className="flex items-center gap-2 bg-[#252C21] px-3 py-2 rounded-lg text-secondary text-xs font-bold hover:bg-[#2F372C] transition-colors">
+                <a 
+                  href={`https://solscan.io/tx/${transactionData?.transaction_hash || ''}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-[#252C21] px-3 py-2 rounded-lg text-secondary text-xs font-bold hover:bg-[#2F372C] transition-colors"
+                >
                   SOLSCAN
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

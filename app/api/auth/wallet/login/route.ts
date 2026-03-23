@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { generateSignInMessage, getUserDataFromWallet } from '@/lib/solana/auth'
+import { generateSignInMessage } from '@/lib/solana/auth'
 
 /**
  * POST /api/auth/wallet/login

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ActionCTA } from '@/components/ui/action-cta'
 import { StepIndicator } from '@/components/ui/step-indicator'
 import { ActivityTimeline, type ActivityItem } from '@/components/ui/activity-timeline'
+import { usePhoneVerification } from '@/lib/hooks/use-phone-verification'
 
 type Step = 'phone' | 'otp'
 
@@ -21,16 +22,21 @@ export default function VerifyPhonePage() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [countryCode, setCountryCode] = useState('+52')
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', ''])
-  const [loading, setLoading] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const { sendOtp, verifyOtp, resendOtp, isLoading, cooldown, error } = usePhoneVerification({
+    onSuccess: () => router.push('/dashboard'),
+  })
 
-  const handlePhoneSubmit = () => {
+  const handlePhoneSubmit = async () => {
     if (phoneNumber.length >= 10) {
-      setLoading(true)
-      setTimeout(() => {
-        setLoading(false)
+      setLocalError(null)
+      const result = await sendOtp(phoneNumber, countryCode)
+      if (result.success) {
         setStep('otp')
-      }, 1000)
+      } else if (result.error) {
+        setLocalError(result.error)
+      }
     }
   }
 
@@ -51,11 +57,12 @@ export default function VerifyPhonePage() {
     }
   }
 
-  const handleVerify = () => {
-    setLoading(true)
-    setTimeout(() => {
-      router.push('/dashboard')
-    }, 1500)
+  const handleVerify = async () => {
+    const code = otpValues.join('')
+    const result = await verifyOtp(code)
+    if (!result.success && result.error) {
+      setLocalError(result.error)
+    }
   }
 
   return (
@@ -143,7 +150,7 @@ export default function VerifyPhonePage() {
                   size="lg"
                   className="w-full"
                   disabled={phoneNumber.length < 10}
-                  loading={loading}
+                  loading={isLoading}
                   icon={
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -190,15 +197,23 @@ export default function VerifyPhonePage() {
                     variant="primary"
                     size="lg"
                     className="flex-1"
-                    loading={loading}
+                    loading={isLoading}
                     disabled={otpValues.some(v => !v)}
                   >
                     Verify & Link Wallet
                   </ActionCTA>
-                  <button className="px-4 py-3 text-muted-foreground hover:text-foreground transition-colors text-sm">
-                    Resend
+                  <button
+                    onClick={() => resendOtp(phoneNumber, countryCode)}
+                    disabled={cooldown > 0 || isLoading}
+                    className="px-4 py-3 text-muted-foreground hover:text-foreground transition-colors text-sm disabled:opacity-50"
+                  >
+                    {cooldown > 0 ? `Resend (${cooldown}s)` : 'Resend'}
                   </button>
                 </div>
+
+                {(localError || error) && (
+                  <p className="text-xs text-red-400 mb-4">{localError || error}</p>
+                )}
 
                 <p className="text-[10px] text-muted-foreground">
                   Encrypted via Solana Protocol

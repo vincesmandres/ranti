@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { verifyWalletSignature, getUserDataFromWallet } from '@/lib/solana/auth'
+import { parseSignInMessage, verifyWalletSignature } from '@/lib/solana/auth'
+import { getClientIdentifier, rateLimit } from '@/lib/server/rate-limit'
 
 /**
  * POST /api/auth/verify-wallet
@@ -17,7 +18,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify the signature
+    const parsed = parseSignInMessage(message)
+    if (!parsed.hasPrefix || parsed.wallet !== publicKey || !parsed.isFresh || !parsed.nonce) {
+      return NextResponse.json(
+        { error: 'Invalid or expired wallet challenge' },
+        { status: 401 },
+      )
+    }
+
+    const clientId = getClientIdentifier(request.headers, publicKey)
+    const limiter = rateLimit({
+      key: `wallet:verify:${publicKey}:${clientId}`,
+      max: 20,
+      windowMs: 10 * 60 * 1000,
+    })
+    if (!limiter.ok) {
+      return NextResponse.json(
+        { error: 'Too many wallet verification attempts', retryAfter: limiter.retryAfterSeconds },
+        { status: 429 },
+      )
+    }
+
+    // Verify the signature cryptographically server-side.
     const isValid = await verifyWalletSignature(publicKey, signature, message)
 
     if (!isValid) {
@@ -29,54 +51,64 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Get or create user with wallet address
-    const { data: existingUser } = await supabase
+    // Attempt to link to current authenticated Supabase user when present.
+    const {
+      data: { user: sessionUser },
+    } = await supabase.auth.getUser()
+
+    if (sessionUser) {
+      const { error: updateProfileError } = await supabase
+        .from('profiles')
+        .update({ wallet_address: publicKey })
+        .eq('id', sessionUser.id)
+
+      if (updateProfileError) {
+        console.error('Wallet profile link error:', updateProfileError)
+        return NextResponse.json(
+          { error: 'Failed to link wallet to current account' },
+          { status: 500 },
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        linked: true,
+        user: {
+          id: sessionUser.id,
+          wallet_address: publicKey,
+        },
+      })
+    }
+
+    // Fallback: verify whether this wallet is already linked to an existing profile.
+    const { data: existingProfile, error: profileLookupError } = await supabase
       .from('profiles')
       .select('id, wallet_address')
       .eq('wallet_address', publicKey)
       .single()
 
-    let userId = existingUser?.id
-
-    // If user doesn't exist, create a new one in Supabase auth
-    if (!userId) {
-      const userData = await getUserDataFromWallet(publicKey)
-
-      // Create session via custom auth method
-      // In production, you'd use signInWithIdToken or similar
-      const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
-        email: `${publicKey}@solana.local`,
-        password: publicKey, // Use public key as temporary password
-      })
-
-      if (authError || !session) {
-        // If user doesn't exist, we need to create them first
-        return NextResponse.json(
-          { error: 'Authentication failed' },
-          { status: 401 }
-        )
-      }
-
-      userId = session.user.id
+    if (profileLookupError && profileLookupError.code !== 'PGRST116') {
+      console.error('Wallet lookup error:', profileLookupError)
+      return NextResponse.json(
+        { error: 'Unable to verify wallet link' },
+        { status: 500 },
+      )
     }
 
-    // Set session cookie
-    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession()
-
-    if (sessionError || !session) {
+    if (!existingProfile) {
       return NextResponse.json(
-        { error: 'Session creation failed' },
-        { status: 401 }
+        { error: 'Wallet is valid but not linked to any account yet' },
+        { status: 401 },
       )
     }
 
     return NextResponse.json({
       success: true,
+      linked: true,
       user: {
-        id: userId,
+        id: existingProfile.id,
         wallet_address: publicKey,
       },
-      session,
     })
   } catch (error) {
     console.error('Wallet verification error:', error)

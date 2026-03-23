@@ -76,7 +76,7 @@ const tickets = [
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const { data: dashboardData, isLoading: loading, isError, error } = useDashboard()
+  const { data: dashboardData, isLoading: loading, isError, error, refetch } = useDashboard()
   const [rewardStatus, setRewardStatus] = useState<any>(null)
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
 
@@ -366,8 +366,16 @@ export default function Dashboard() {
           ticket={selectedTicket}
           onClose={() => setSelectedTicket(null)}
           onActivate={async () => {
-            // TODO: Implement check-in logic
-            console.log('Activating ticket:', selectedTicket.id)
+            const response = await fetch(`/api/tickets/${selectedTicket.id}/check-in`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Idempotency-Key': `${selectedTicket.id}-${Date.now()}`,
+              },
+            })
+            if (response.ok) {
+              await refetch()
+            }
           }}
         />
       )}

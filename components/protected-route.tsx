@@ -8,8 +8,8 @@ interface ProtectedRouteProps {
   children: React.ReactNode
 }
 
-// Set to true to bypass auth for internal testing
-const BYPASS_AUTH_FOR_TESTING = true
+// Optional local bypass for controlled testing.
+const BYPASS_AUTH_FOR_TESTING = process.env.NEXT_PUBLIC_BYPASS_AUTH_FOR_TESTING === 'true'
 
 /**
  * Wrapper component to protect routes behind authentication

@@ -89,7 +89,7 @@ export async function GET() {
 
     // Map ticket statuses
     const activeTickets = (tickets || []).filter(t => 
-      ['issued', 'active'].includes(t.status)
+      ['issued', 'active', 'claimed'].includes(t.status)
     ).map(t => ({
       ...t,
       statusLabel: t.status === 'issued' ? 'ACTIVE' : t.status.toUpperCase(),
@@ -100,7 +100,7 @@ export async function GET() {
     )
 
     const usedTickets = (tickets || []).filter(t => 
-      ['used', 'expired'].includes(t.status)
+      ['used', 'expired', 'completed', 'rewarded'].includes(t.status)
     )
 
     // Rewards summary

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getClientIdentifier, rateLimit } from '@/lib/server/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +21,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
+      )
+    }
+
+    const clientId = getClientIdentifier(request.headers, user.id)
+    const limiter = rateLimit({
+      key: `otp:verify:${user.id}:${clientId}`,
+      max: 10,
+      windowMs: 10 * 60 * 1000,
+    })
+    if (!limiter.ok) {
+      return NextResponse.json(
+        { error: 'Too many verification attempts', retryAfter: limiter.retryAfterSeconds },
+        { status: 429 },
       )
     }
 
@@ -84,7 +98,7 @@ export async function POST(request: NextRequest) {
       type: 'phone_verified',
       title: 'Phone Verified',
       description: `Phone number verified: ***${profile.phone.slice(-4)}`,
-      metadata: { phone: profile.phone },
+      metadata: { phone_masked: `***${profile.phone.slice(-4)}` },
     })
 
     return NextResponse.json({

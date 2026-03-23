@@ -1,37 +1,58 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { AuthLayout } from '@/components/layouts/auth-layout'
 import { TicketCard, type TicketData } from '@/components/ui/ticket-card'
 import { ActionCTA } from '@/components/ui/action-cta'
 
-const tickets: TicketData[] = [
-  {
-    id: '1',
-    name: 'CYBERPUNK\nNIGHTS',
-    venue: 'NEON DISTRICT HUB',
-    date: 'OCT 24',
-    year: '2024',
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'SOLANA\nBREAKPOINT',
-    venue: 'CONVENTION CENTER',
-    date: 'NOV 12',
-    year: '2024',
-    status: 'active',
-  },
-  {
-    id: '3',
-    name: 'SUMMER\nROOFTOP',
-    venue: 'SKY GARDEN',
-    date: 'AUG 15',
-    year: '2024',
-    status: 'used',
-  },
-]
+type ApiTicket = {
+  id: string
+  status: string
+  events: {
+    name: string
+    venue: string | null
+    date: string | null
+  } | null
+}
+
+function mapStatus(status: string): TicketData['status'] {
+  if (['used', 'expired', 'cancelled'].includes(status)) return 'used'
+  if (['checked_in', 'claimed', 'completed', 'rewarded'].includes(status)) return 'pending'
+  return 'active'
+}
 
 export default function TicketsPage() {
+  const [tickets, setTickets] = useState<TicketData[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadTickets = async () => {
+      try {
+        const response = await fetch('/api/tickets')
+        if (!response.ok) return
+        const json = await response.json()
+        const mapped: TicketData[] = ((json.data as ApiTicket[]) || []).map((ticket) => {
+          const eventDate = ticket.events?.date ? new Date(ticket.events.date) : new Date()
+          return {
+            id: ticket.id,
+            name: (ticket.events?.name || 'EVENTO').replaceAll(' ', '\n'),
+            venue: ticket.events?.venue || 'TBA',
+            date: eventDate
+              .toLocaleDateString('es-MX', { month: 'short', day: '2-digit' })
+              .toUpperCase(),
+            year: String(eventDate.getFullYear()),
+            status: mapStatus(ticket.status),
+          }
+        })
+        setTickets(mapped)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadTickets()
+  }, [])
+
   return (
     <AuthLayout>
       <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto">
@@ -59,16 +80,19 @@ export default function TicketsPage() {
           </ActionCTA>
         </div>
 
-        {/* Tickets Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tickets.map((ticket) => (
-            <TicketCard
-              key={ticket.id}
-              ticket={ticket}
-              href={`/tickets/${ticket.id}`}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="py-10 text-sm text-muted-foreground">Cargando tickets...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tickets.map((ticket) => (
+              <TicketCard
+                key={ticket.id}
+                ticket={ticket}
+                href={`/tickets/${ticket.id}`}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Empty state placeholder */}
         {tickets.length === 0 && (

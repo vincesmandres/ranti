@@ -1,26 +1,84 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { AuthLayout } from '@/components/layouts/auth-layout'
 import { StatusPill } from '@/components/ui/status-pill'
 import { ActionCTA } from '@/components/ui/action-cta'
 
-// Mock data - in production this would come from an API
-const ticketData = {
-  id: '1',
-  name: 'CYBERPUNK NIGHTS',
-  venue: 'NEON DISTRICT HUB',
-  date: 'OCT 24',
-  year: '2024',
-  status: 'active' as const,
-  tokenId: '#0012',
-  collection: 'NEON SYNDICATE',
-  owner: '0x82...F91A',
+type TicketDetailApi = {
+  id: string
+  token_id?: string | null
+  status: 'active' | 'used' | 'pending'
+  user_id?: string
+  events: {
+    name: string
+    venue: string | null
+    date: string | null
+  } | null
+}
+
+function mapStatus(status: string): 'active' | 'used' | 'pending' {
+  if (['used', 'expired', 'cancelled'].includes(status)) return 'used'
+  if (['checked_in', 'claimed', 'completed', 'rewarded'].includes(status)) return 'pending'
+  return 'active'
 }
 
 export default function TicketDetailPage() {
   const params = useParams()
+  const id = String(params.id)
+  const [ticketData, setTicketData] = useState<TicketDetailApi | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const loadTicket = async () => {
+      try {
+        const response = await fetch(`/api/tickets/${id}`)
+        if (!response.ok) return
+        const json = await response.json()
+        const ticket = json.data as any
+        setTicketData({
+          ...ticket,
+          status: mapStatus(ticket.status),
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadTicket()
+  }, [id])
+
+  const eventDate = useMemo(() => {
+    if (!ticketData?.events?.date) return new Date()
+    return new Date(ticketData.events.date)
+  }, [ticketData?.events?.date])
+
+  const handleCheckIn = async () => {
+    if (!ticketData || submitting) return
+    setSubmitting(true)
+    try {
+      const response = await fetch(`/api/tickets/${id}/check-in`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': `${id}-${Date.now()}`,
+        },
+      })
+      if (response.ok) {
+        const updated = await response.json()
+        setTicketData((prev) => {
+          if (!prev) return prev
+          const status = mapStatus(updated?.data?.status || 'checked_in')
+          return { ...prev, status }
+        })
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <AuthLayout>
@@ -36,6 +94,9 @@ export default function TicketDetailPage() {
           <span className="text-sm">Back to Tickets</span>
         </Link>
 
+        {loading || !ticketData ? (
+          <div className="py-10 text-sm text-muted-foreground">Cargando detalle...</div>
+        ) : (
         <div className="grid md:grid-cols-2 gap-6">
           {/* Left - QR & Visual */}
           <div className="bg-surface-container-low border border-border rounded-2xl p-6">
@@ -56,11 +117,11 @@ export default function TicketDetailPage() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
                 Collection by
               </p>
-              <p className="text-sm font-bold text-secondary">{ticketData.collection}</p>
+              <p className="text-sm font-bold text-secondary">RANTI PROTOCOL</p>
             </div>
 
             <h1 className="text-3xl font-bold text-primary mb-4" style={{ fontFamily: 'var(--font-climate)' }}>
-              {ticketData.name}
+              {ticketData.events?.name || 'TICKET'}
             </h1>
 
             {/* QR Code placeholder */}
@@ -80,14 +141,14 @@ export default function TicketDetailPage() {
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Token ID</p>
                 <p className="text-sm font-bold text-foreground" style={{ fontFamily: 'var(--font-grotesk)' }}>
-                  {ticketData.tokenId}
+                  {ticketData.token_id || `#${ticketData.id.slice(0, 6)}`}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>
-                  {ticketData.date}
+                  {eventDate.toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }).toUpperCase()}
                 </p>
-                <p className="text-sm font-bold text-foreground">{ticketData.year}</p>
+                <p className="text-sm font-bold text-foreground">{eventDate.getFullYear()}</p>
               </div>
             </div>
           </div>
@@ -103,20 +164,21 @@ export default function TicketDetailPage() {
               <div className="space-y-4">
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Venue</p>
-                  <p className="text-sm font-bold text-foreground">{ticketData.venue}</p>
+                  <p className="text-sm font-bold text-foreground">{ticketData.events?.venue || 'TBA'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Owner</p>
-                  <p className="text-sm font-bold text-foreground font-mono">{ticketData.owner}</p>
+                  <p className="text-sm font-bold text-foreground font-mono">{ticketData.user_id || 'Me'}</p>
                 </div>
               </div>
             </div>
 
             <ActionCTA
-              href={`/check-in/success?ticket=${params.id}`}
+              onClick={handleCheckIn}
               variant="primary"
               size="lg"
               className="w-full"
+              loading={submitting}
               icon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -137,6 +199,7 @@ export default function TicketDetailPage() {
             </ActionCTA>
           </div>
         </div>
+        )}
       </div>
     </AuthLayout>
   )

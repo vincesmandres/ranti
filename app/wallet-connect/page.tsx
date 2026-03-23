@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import bs58 from 'bs58'
 import { ActionCTA } from '@/components/ui/action-cta'
 import { StepIndicator } from '@/components/ui/step-indicator'
+import { useWallet } from '@/lib/solana/use-wallet'
 
 const wallets = [
   { id: 'phantom', name: 'Phantom', icon: '👻', detected: true },
@@ -15,15 +17,61 @@ const wallets = [
 
 export default function WalletConnectPage() {
   const router = useRouter()
+  const { connect, connected, publicKey, signMessage } = useWallet()
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!selectedWallet) return
+    setError(null)
     setConnecting(true)
-    setTimeout(() => {
+    try {
+      if (!connected) {
+        await connect()
+      }
+
+      if (!publicKey || !signMessage) {
+        throw new Error('Wallet not ready. Please retry.')
+      }
+
+      const challengeResponse = await fetch('/api/auth/wallet/challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicKey }),
+      })
+
+      if (!challengeResponse.ok) {
+        const challengeError = await challengeResponse.json()
+        throw new Error(challengeError.error || 'Failed to request wallet challenge')
+      }
+
+      const challengeData = await challengeResponse.json()
+      const message = challengeData.message as string
+      const signature = await signMessage(new TextEncoder().encode(message))
+      const signatureBase58 = bs58.encode(signature)
+
+      const verifyResponse = await fetch('/api/auth/verify-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          publicKey,
+          message,
+          signature: signatureBase58,
+        }),
+      })
+
+      if (!verifyResponse.ok) {
+        const verifyError = await verifyResponse.json()
+        throw new Error(verifyError.error || 'Wallet verification failed')
+      }
+
       router.push('/verify-phone')
-    }, 1500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Wallet connection failed')
+    } finally {
+      setConnecting(false)
+    }
   }
 
   return (
@@ -98,6 +146,7 @@ export default function WalletConnectPage() {
           >
             {connecting ? 'Connecting...' : 'Connect Wallet'}
           </ActionCTA>
+          {error && <p className="text-xs text-red-400 mt-3">{error}</p>}
         </div>
 
         {/* Back */}

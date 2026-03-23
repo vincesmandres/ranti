@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getClientIdentifier, rateLimit } from '@/lib/server/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +31,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
+      )
+    }
+
+    const clientId = getClientIdentifier(request.headers, user.id)
+    const limiter = rateLimit({
+      key: `otp:start:${user.id}:${clientId}`,
+      max: 5,
+      windowMs: 10 * 60 * 1000,
+    })
+    if (!limiter.ok) {
+      return NextResponse.json(
+        {
+          error: `Too many OTP requests. Retry in ${limiter.retryAfterSeconds} seconds`,
+          cooldown: limiter.retryAfterSeconds,
+        },
+        { status: 429 },
       )
     }
 
@@ -80,6 +97,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Verification code sent',
       phone: fullPhone.slice(-4), // Return last 4 digits only
+      remaining: limiter.remaining,
     })
   } catch (error) {
     console.error('Phone start error:', error)

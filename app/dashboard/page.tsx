@@ -76,7 +76,7 @@ const tickets = [
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const { data: dashboardData, loading, error } = useDashboard()
+  const { data: dashboardData, isLoading: loading, isError, error } = useDashboard()
   const [rewardStatus, setRewardStatus] = useState<any>(null)
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
 
@@ -101,7 +101,7 @@ export default function Dashboard() {
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <ProtectedRoute>
         <AuthLayout>
@@ -133,16 +133,16 @@ export default function Dashboard() {
               className="text-[80px] font-bold text-primary leading-none mb-4"
               style={{ fontFamily: 'var(--font-climate)' }}
             >
-              {dashboardData?.score || 0}
+              {dashboardData?.participation?.score?.toLocaleString() || '0'}
             </div>
             <div className="flex items-center gap-4 mb-3">
               <div>
                 <p className="text-[10px] text-muted uppercase tracking-wide">Nivel</p>
-                <p className="text-xs font-bold text-foreground">{dashboardData?.level || 'Protocol Level 1'}</p>
+                <p className="text-xs font-bold text-foreground">Protocol Level {dashboardData?.participation?.level || 1}</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted uppercase tracking-wide">Siguiente Rango</p>
-                <p className="text-xs font-bold text-foreground">{dashboardData?.nextLevelProgress || '0%'}</p>
+                <p className="text-xs font-bold text-foreground">{dashboardData?.participation?.progress || 0}% al siguiente rango</p>
               </div>
             </div>
             {/* Progress bar */}
@@ -167,28 +167,29 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {dashboardData?.rewards?.map((reward: any) => (
+                {[...(dashboardData?.rewards?.unlocked || []), ...(dashboardData?.rewards?.locked || [])].map((reward: any) => (
                   <div
                     key={reward.id}
                     className={`rounded-xl border p-3 flex flex-col gap-2 ${
-                      reward.locked
+                      !reward.unlocked
                         ? 'border-border opacity-40'
                         : 'border-border hover:border-primary/40 transition-colors'
                     }`}
                   >
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        reward.locked ? 'bg-muted/10 text-muted' : 'bg-primary/20 text-primary'
+                        !reward.unlocked ? 'bg-muted/10 text-muted' : 'bg-primary/20 text-primary'
                       }`}
                     >
                       {rewardIcons[reward.name as keyof typeof rewardIcons]}
                     </div>
                     <div>
                       <p className="text-xs font-bold text-foreground leading-tight">{reward.name}</p>
-                      <p className="text-[10px] text-muted mt-0.5">{reward.sub}</p>
+                      <p className="text-[10px] text-muted mt-0.5">{reward.description}</p>
                     </div>
                   </div>
-                )) || (
+                ))}
+                {(!dashboardData?.rewards || dashboardData.rewards.total === 0) && (
                   <p className="text-xs text-muted col-span-2">No rewards yet</p>
                 )}
               </div>
@@ -222,7 +223,7 @@ export default function Dashboard() {
                       )}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-foreground">{item.label}</p>
+                      <p className="text-xs font-bold text-foreground">{item.title}</p>
                       <p className="text-[10px] text-muted mt-0.5">{item.description}</p>
                     </div>
                   </div>
@@ -254,18 +255,22 @@ export default function Dashboard() {
 
           {/* Ticket list */}
           <div className="flex-1 px-6 space-y-4 pb-4 overflow-y-auto">
-            {dashboardData?.tickets && dashboardData.tickets.length > 0 ? (
-              dashboardData.tickets.map((ticket: any) => {
+            {dashboardData?.tickets && dashboardData.tickets.total > 0 ? (
+              [...(dashboardData.tickets.active || []), ...(dashboardData.tickets.checkedIn || []), ...(dashboardData.tickets.used || [])].map((ticket: any) => {
                 const ticketColors: { [key: string]: { bg: string; fg: string } } = {
                   active: { bg: '#B8FF8C', fg: '#143800' },
+                  issued: { bg: '#B8FF8C', fg: '#143800' },
                   checked_in: { bg: '#161D14', fg: '#B8FF8C' },
                   used: { bg: '#161D14', fg: '#5E6659' },
                 }
                 const colors = ticketColors[ticket.status] || ticketColors.active
+                const eventDate = ticket.events?.date || new Date().toISOString()
+                const eventName = ticket.events?.name || 'Unknown Event'
+                const eventVenue = ticket.events?.venue || 'TBA'
                 return (
                   <div
                     key={ticket.id}
-                    onClick={() => setSelectedTicket(ticket)}
+                    onClick={() => setSelectedTicket({ ...ticket, event_name: eventName, event_date: eventDate, venue: eventVenue })}
                     className={`block group relative cursor-pointer ${ticket.status === 'used' ? 'opacity-60 grayscale' : ''}`}
                   >
                     <div
@@ -283,14 +288,14 @@ export default function Dashboard() {
                               background: colors.bg === '#B8FF8C' ? '#14380010' : 'transparent',
                             }}
                           >
-                            {ticket.status.toUpperCase()}
+                            {ticket.statusLabel || ticket.status.toUpperCase()}
                           </span>
                           <div className="text-right">
                             <p className="text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-grotesk)', color: colors.fg }}>
-                              {new Date(ticket.event_date).toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }).toUpperCase()}
+                              {new Date(eventDate).toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }).toUpperCase()}
                             </p>
                             <p className="text-xl font-black leading-none" style={{ fontFamily: 'var(--font-grotesk)', color: colors.fg }}>
-                              {new Date(ticket.event_date).getFullYear()}
+                              {new Date(eventDate).getFullYear()}
                             </p>
                           </div>
                         </div>
@@ -300,7 +305,7 @@ export default function Dashboard() {
                           className="text-2xl uppercase leading-tight mb-4"
                           style={{ fontFamily: 'var(--font-climate)', color: colors.fg }}
                         >
-                          {ticket.event_name}
+                          {eventName}
                         </h3>
 
                         {/* Bottom row */}
@@ -310,7 +315,7 @@ export default function Dashboard() {
                               Venue
                             </p>
                             <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-grotesk)', color: colors.fg }}>
-                              {ticket.venue}
+                              {eventVenue}
                             </p>
                           </div>
                           {/* QR Icon */}

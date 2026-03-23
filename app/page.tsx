@@ -58,9 +58,9 @@ export default function Home() {
             <span className="text-lg font-bold text-primary tracking-wider" style={{ fontFamily: 'var(--font-climate)' }}>RANTI</span>
           </Link>
           <nav className="flex items-center gap-6 text-xs">
-            <a href="#eventos" className="text-primary border-b-2 border-primary pb-1 uppercase tracking-widest font-bold">Events</a>
-            <a href="#" className="text-muted hover:text-foreground transition-colors uppercase tracking-widest font-bold">Marketplace</a>
-            <a href="#" className="text-muted hover:text-foreground transition-colors uppercase tracking-widest font-bold">My Tickets</a>
+            <Link href="/eventos" className="text-primary border-b-2 border-primary pb-1 uppercase tracking-widest font-bold hover:opacity-80 transition-opacity">Events</Link>
+            <Link href="/marketplace" className="text-muted hover:text-primary transition-colors uppercase tracking-widest font-bold">Marketplace</Link>
+            <Link href="/tickets" className="text-muted hover:text-primary transition-colors uppercase tracking-widest font-bold">My Tickets</Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">

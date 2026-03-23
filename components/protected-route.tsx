@@ -8,12 +8,20 @@ interface ProtectedRouteProps {
   children: React.ReactNode
 }
 
+// Set to true to bypass auth for internal testing
+const BYPASS_AUTH_FOR_TESTING = true
+
 /**
  * Wrapper component to protect routes behind authentication
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const router = useRouter()
+
+  // Bypass auth for testing mode
+  if (BYPASS_AUTH_FOR_TESTING) {
+    return <>{children}</>
+  }
 
   useEffect(() => {
     if (!loading && !user) {

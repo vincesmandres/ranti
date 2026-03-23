@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { Climate_Crisis, Poppins } from 'next/font/google'
+import { Climate_Crisis, Poppins, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const climateCrisis = Climate_Crisis({ subsets: ["latin"], weight: ["400"] });
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
   title: 'Ranti - Protocol Events on Solana',
@@ -38,6 +39,7 @@ export default function RootLayout({
     <html lang="es" style={{
       '--font-climate': climateCrisis.style.fontFamily,
       '--font-poppins': poppins.style.fontFamily,
+      '--font-grotesk': spaceGrotesk.style.fontFamily,
     } as React.CSSProperties}>
       <body className="font-sans antialiased">
         {children}

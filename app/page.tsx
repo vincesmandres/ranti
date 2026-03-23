@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-type ModalType = 'none' | 'login' | 'otp' | 'role'
+type ModalType = 'none' | 'login' | 'phone' | 'otp' | 'role'
 
 export default function Home() {
   const router = useRouter()
   const [activeModal, setActiveModal] = useState<ModalType>('none')
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', ''])
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [countryCode, setCountryCode] = useState('+52')
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length <= 1 && /^\d*$/.test(value)) {
@@ -24,7 +26,13 @@ export default function Home() {
   }
 
   const handleLoginNext = () => {
-    setActiveModal('otp')
+    setActiveModal('phone')
+  }
+
+  const handlePhoneNext = () => {
+    if (phoneNumber.length >= 10) {
+      setActiveModal('otp')
+    }
   }
 
   const handleOtpNext = () => {
@@ -33,7 +41,11 @@ export default function Home() {
 
   const handleRoleSelect = (role: 'organizador' | 'asistente') => {
     setActiveModal('none')
-    router.push('/dashboard')
+    if (role === 'organizador') {
+      router.push('/organizer')
+    } else {
+      router.push('/dashboard')
+    }
   }
 
   return (
@@ -82,11 +94,16 @@ export default function Home() {
             </div>
 
             {/* Hero Text */}
-            <div className="flex-1 pt-8">
-              <h1 className="text-7xl font-bold text-primary mb-4 leading-tight" style={{ fontFamily: 'var(--font-climate)' }}>
-                Texto 1
+            <div className="flex-1 pt-4">
+              <h1 className="text-6xl font-bold text-primary mb-6 leading-[1.1]" style={{ fontFamily: 'var(--font-climate)' }}>
+                Entradas<br/>
+                como<br/>
+                activos<br/>
+                verificables
               </h1>
-              <p className="text-lg text-muted mb-8">Texto 2</p>
+              <p className="text-sm text-muted mb-8 max-w-md leading-relaxed">
+                Protocolo en Solana para tickets programables, check-ins on-chain e historial de participacion demostrable. Explora activos y documentacion para integrar tu proximo evento.
+              </p>
               <div className="flex gap-4">
                 <button className="px-6 py-3 bg-transparent border border-primary text-primary font-bold rounded-lg hover:bg-primary/10 transition-colors text-sm flex items-center gap-2">
                   Explore Assets
@@ -263,6 +280,75 @@ export default function Home() {
             </div>
           )}
 
+          {/* PHONE INPUT MODAL */}
+          {activeModal === 'phone' && (
+            <div className="relative z-10 bg-[#161D14] border border-[#2a3528] rounded-2xl p-8 w-[420px] shadow-2xl">
+              {/* Back button */}
+              <button
+                onClick={() => setActiveModal('login')}
+                className="flex items-center gap-2 text-muted hover:text-primary transition-colors mb-6"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span className="text-xs uppercase tracking-widest">Volver</span>
+              </button>
+
+              <h2 className="text-3xl font-bold text-primary mb-2" style={{ fontFamily: 'var(--font-climate)' }}>
+                Ingresa tu<br/>numero
+              </h2>
+              <p className="text-xs text-muted mb-8">
+                Te enviaremos un codigo de verificacion para confirmar tu identidad.
+              </p>
+
+              {/* Phone input */}
+              <div className="mb-6">
+                <label className="text-[10px] text-muted uppercase tracking-widest block mb-2">
+                  Numero de telefono
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="w-24 bg-[#0E150C] border border-[#2a3528] rounded-xl px-3 py-4 text-sm text-foreground focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer"
+                    style={{ fontFamily: 'var(--font-grotesk)' }}
+                  >
+                    <option value="+52">+52</option>
+                    <option value="+1">+1</option>
+                    <option value="+34">+34</option>
+                    <option value="+44">+44</option>
+                    <option value="+55">+55</option>
+                  </select>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                    placeholder="55 1234 5678"
+                    className="flex-1 bg-[#0E150C] border border-[#2a3528] rounded-xl px-4 py-4 text-lg text-foreground placeholder:text-muted/50 focus:border-primary focus:outline-none transition-colors"
+                    style={{ fontFamily: 'var(--font-grotesk)' }}
+                    maxLength={10}
+                  />
+                </div>
+              </div>
+
+              {/* Submit button */}
+              <button
+                onClick={handlePhoneNext}
+                disabled={phoneNumber.length < 10}
+                className="w-full px-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Enviar Codigo
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+
+              <p className="text-[9px] text-muted text-center mt-6 leading-relaxed">
+                Al continuar, aceptas recibir mensajes SMS para verificacion.
+              </p>
+            </div>
+          )}
+
           {/* OTP MODAL */}
           {activeModal === 'otp' && (
             <div className="relative z-10 bg-[#0E150C] border border-[#2a3528] rounded-2xl overflow-hidden w-[900px] shadow-2xl flex">
@@ -271,7 +357,7 @@ export default function Home() {
                 {/* Back + Header */}
                 <div className="flex items-center justify-between mb-8">
                   <button
-                    onClick={() => setActiveModal('login')}
+                    onClick={() => setActiveModal('phone')}
                     className="flex items-center gap-2 text-muted hover:text-primary transition-colors"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,9 +391,9 @@ export default function Home() {
                 </h1>
 
                 <p className="text-sm text-muted mb-2">
-                  {"We've sent a 6-digit code to your phone"} <span className="text-primary">+52 55</span>
+                  {"We've sent a 6-digit code to your phone"} <span className="text-primary">{countryCode}</span>
                 </p>
-                <p className="text-sm text-primary mb-8">****1234</p>
+                <p className="text-sm text-primary mb-8">****{phoneNumber.slice(-4)}</p>
 
                 {/* OTP Inputs */}
                 <div className="flex gap-3 mb-8">

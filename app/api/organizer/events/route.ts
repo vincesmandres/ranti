@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createHash, randomUUID } from 'crypto'
 
 // GET all events for organizer
 export async function GET() {
@@ -79,12 +80,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Generate mock transaction data for success modal
+    const network = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet'
+    const fingerprint = createHash('sha256')
+      .update(`${user.id}:${event.id}:${event.event_id}:${Date.now()}:${randomUUID()}`)
+      .digest('hex')
+
+    // Demo-safe evidence payload (backend record), not an on-chain confirmation.
     const transactionData = {
-      user_signature: `0x${Array.from({ length: 8 }, () => Math.random().toString(16).slice(2, 6)).join('...')}`,
-      organizer_signature: `0x${Array.from({ length: 8 }, () => Math.random().toString(16).slice(2, 6)).join('...')}`,
-      asset_id: `RP-${Math.random().toString(36).slice(2, 6).toUpperCase()}-QLA-${Math.random().toString(36).slice(2, 6).toUpperCase()}-LM5-BB42`,
-      transaction_hash: `0x${Array.from({ length: 12 }, () => Math.random().toString(16).slice(2, 4)).join('...')}`,
+      user_signature: `usr_${fingerprint.slice(0, 10)}_${fingerprint.slice(10, 18)}`,
+      organizer_signature: `org_${fingerprint.slice(18, 28)}_${fingerprint.slice(28, 36)}`,
+      asset_id: `RANTI-EVT-${event.event_id.toUpperCase()}-${event.id.slice(0, 8)}`,
+      transaction_hash: `demo_${fingerprint.slice(0, 48)}`,
+      proof_mode: 'demo-backend-record',
+      network,
+      reference_url: null,
     }
 
     return NextResponse.json({ 

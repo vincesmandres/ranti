@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
+import { SolanaWalletStrip } from '@/components/solana-wallet-strip'
 
 type ModalType = 'none' | 'login' | 'phone' | 'otp' | 'role'
 
@@ -113,6 +114,13 @@ export default function HomePage() {
     setPhoneError(null)
     setOtpSent(false)
   }, [])
+
+  const handleResendOtp = useCallback(() => {
+    if (resendTimer > 0) return
+    setResendTimer(60)
+    setOtpValues(['', '', '', '', '', ''])
+    setOtpError(null)
+  }, [resendTimer])
 
   return (
     <div className="min-h-screen bg-background">
@@ -225,24 +233,32 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="p-6 md:p-12 max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4" style={{ fontFamily: 'var(--font-climate)' }}>
-            Ranti Protocol
-          </h1>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Where tickets become assets. Verify participation, unlock rewards, build community.
+        <div className="text-center mb-10">
+          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-primary mb-4">
+            Solana · Smart ticketing + loyalty
           </p>
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-4 leading-tight" style={{ fontFamily: 'var(--font-climate)' }}>
+            El ticket no muere
+            <span className="block text-primary mt-1">después del check-in</span>
+          </h1>
+          <p className="text-base md:text-lg text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
+            Convierte entradas &quot;muertas&quot; en activos: acceso verificado, recompensas, badges e historial de participación para comunidades y experiencias.
+          </p>
+          <SolanaWalletStrip showHint className="mx-auto mb-8 max-w-xl" />
         </div>
 
         {/* CTA */}
         {!connected ? (
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <button
               onClick={() => openWalletModal(true)}
-              className="px-8 py-4 bg-primary text-primary-foreground text-lg font-bold rounded-lg hover:bg-primary/90 transition-all"
+              className="px-8 py-4 bg-primary text-primary-foreground text-lg font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
             >
-              Connect Wallet to Get Started
+              Conectar wallet — empezar demo
             </button>
+            <p className="text-[11px] text-muted-foreground max-w-md mx-auto">
+              Identidad con firma en wallet + sesión verificada. La demo prioriza el flujo ticket → check-in → recompensa.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -250,22 +266,22 @@ export default function HomePage() {
               onClick={() => router.push('/dashboard')}
               className="p-6 bg-surface-container-low border border-border rounded-lg hover:border-primary/30 transition-colors text-left"
             >
-              <h3 className="text-xl font-bold mb-2">User Dashboard</h3>
-              <p className="text-muted-foreground text-sm">Manage your tickets and rewards</p>
+              <h3 className="text-xl font-bold mb-2">Panel asistente</h3>
+              <p className="text-muted-foreground text-sm">Tickets activos, check-in y puntos de participación</p>
             </button>
             <button
               onClick={() => router.push('/organizer')}
               className="p-6 bg-surface-container-low border border-border rounded-lg hover:border-primary/30 transition-colors text-left"
             >
-              <h3 className="text-xl font-bold mb-2">Organizer Mode</h3>
-              <p className="text-muted-foreground text-sm">Create events and manage check-ins</p>
+              <h3 className="text-xl font-bold mb-2">Modo organizador</h3>
+              <p className="text-muted-foreground text-sm">Eventos y control de acceso (demo)</p>
             </button>
             <button
               onClick={() => router.push('/marketplace')}
               className="p-6 bg-surface-container-low border border-border rounded-lg hover:border-primary/30 transition-colors text-left"
             >
               <h3 className="text-xl font-bold mb-2">Marketplace</h3>
-              <p className="text-muted-foreground text-sm">Explore and purchase tickets</p>
+              <p className="text-muted-foreground text-sm">Descubrir y adquirir entradas</p>
             </button>
           </div>
         )}

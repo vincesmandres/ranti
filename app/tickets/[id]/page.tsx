@@ -1,16 +1,19 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AuthLayout } from '@/components/layouts/auth-layout'
 import { StatusPill } from '@/components/ui/status-pill'
 import { ActionCTA } from '@/components/ui/action-cta'
+import { TicketLifecycleStrip } from '@/components/ui/ticket-lifecycle-strip'
+import { config } from '@/lib/config'
 
 type TicketDetailApi = {
   id: string
   token_id?: string | null
   status: 'active' | 'used' | 'pending'
+  rawStatus?: string
   user_id?: string
   events: {
     name: string
@@ -26,6 +29,7 @@ function mapStatus(status: string): 'active' | 'used' | 'pending' {
 }
 
 export default function TicketDetailPage() {
+  const router = useRouter()
   const params = useParams()
   const id = String(params.id)
   const [ticketData, setTicketData] = useState<TicketDetailApi | null>(null)
@@ -41,6 +45,7 @@ export default function TicketDetailPage() {
         const ticket = json.data as any
         setTicketData({
           ...ticket,
+          rawStatus: ticket.status,
           status: mapStatus(ticket.status),
         })
       } finally {
@@ -69,11 +74,13 @@ export default function TicketDetailPage() {
       })
       if (response.ok) {
         const updated = await response.json()
+        const nextRaw = updated?.data?.status || 'checked_in'
         setTicketData((prev) => {
           if (!prev) return prev
-          const status = mapStatus(updated?.data?.status || 'checked_in')
-          return { ...prev, status }
+          const status = mapStatus(nextRaw)
+          return { ...prev, rawStatus: nextRaw, status }
         })
+        router.push(`/check-in/success?t=${id}`)
       }
     } finally {
       setSubmitting(false)
@@ -100,18 +107,9 @@ export default function TicketDetailPage() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Left - QR & Visual */}
           <div className="bg-surface-container-low border border-border rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-surface-container-high">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-              </button>
-              <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-surface-container-high">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              </button>
-            </div>
+            <p className="text-[10px] text-muted-foreground mb-4">
+              Vista previa de pase — el estado vive después del check-in (recompensas e historial).
+            </p>
 
             <div className="mb-4">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
@@ -137,9 +135,11 @@ export default function TicketDetailPage() {
               </div>
             </div>
 
+            <TicketLifecycleStrip status={ticketData.rawStatus || 'active'} className="mb-4" compact />
+
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Token ID</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Referencia de ticket</p>
                 <p className="text-sm font-bold text-foreground" style={{ fontFamily: 'var(--font-grotesk)' }}>
                   {ticketData.token_id || `#${ticketData.id.slice(0, 6)}`}
                 </p>
@@ -186,17 +186,24 @@ export default function TicketDetailPage() {
               }
               iconPosition="left"
             >
-              Activate Access Key
+              Confirmar check-in
             </ActionCTA>
 
             <ActionCTA
-              href="https://solscan.io"
+              href={
+                config.solanaNetwork === 'mainnet-beta'
+                  ? 'https://solscan.io'
+                  : 'https://solscan.io/?cluster=devnet'
+              }
               variant="outline"
               size="md"
               className="w-full"
             >
-              View on Solscan
+              Explorador Solana (devnet)
             </ActionCTA>
+            <p className="text-[10px] text-center text-muted-foreground">
+              La transacción on-chain del programa se muestra aquí cuando esté integrada; hoy la demo usa sesión + API.
+            </p>
           </div>
         </div>
         )}

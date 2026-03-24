@@ -1,7 +1,6 @@
 'use client'
 
 import { AuthLayout } from '@/components/layouts/auth-layout'
-import { ProtectedRoute } from '@/components/protected-route'
 import { useWallet } from '@solana/wallet-adapter-react'
 
 export default function SettingsPage() {
@@ -12,8 +11,7 @@ export default function SettingsPage() {
     : null
 
   return (
-    <ProtectedRoute>
-      <AuthLayout>
+    <AuthLayout>
         <div className="p-4 md:p-6 lg:p-8 max-w-2xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-primary" style={{ fontFamily: 'var(--font-climate)' }}>
@@ -74,7 +72,6 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
-      </AuthLayout>
-    </ProtectedRoute>
+    </AuthLayout>
   )
 }

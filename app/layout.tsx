@@ -9,8 +9,9 @@ const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  title: 'Ranti - Protocol Events on Solana',
-  description: 'Liquid tickets and verified reputation for high-end Solana events',
+  title: 'Ranti — Tickets that stay alive after check-in',
+  description:
+    'Smart ticketing and loyalty on Solana: verified check-in, rewards, badges, and participation history that compounds.',
   generator: 'v0.app',
   icons: {
     icon: [

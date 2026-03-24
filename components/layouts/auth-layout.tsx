@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { useState, useRef, useEffect } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
+import { ProtectedRoute } from '@/components/protected-route'
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -16,6 +17,7 @@ const navItems = [
   { href: '/marketplace', label: 'Marketplace' },
   { href: '/tickets', label: 'My Tickets' },
   { href: '/rewards', label: 'Rewards' },
+  { href: '/history', label: 'History' },
 ]
 
 export function AuthLayout({ children }: AuthLayoutProps) {
@@ -49,6 +51,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   }
 
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top Navigation */}
       <header className="border-b border-border px-4 md:px-6 h-14 flex items-center justify-between bg-background sticky top-0 z-50">
@@ -203,5 +206,6 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       {/* Main Content */}
       <main className="flex-1">{children}</main>
     </div>
+    </ProtectedRoute>
   )
 }

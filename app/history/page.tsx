@@ -1,66 +1,101 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { AuthLayout } from '@/components/layouts/auth-layout'
 import { ActivityTimeline, type ActivityItem } from '@/components/ui/activity-timeline'
 
-const activities: ActivityItem[] = [
-  {
-    id: '1',
-    type: 'check-in',
-    title: 'Check-in Verified',
-    description: 'LOLLAPALOOZA 2024',
-    timestamp: '2 hours ago',
+function formatTime(iso: string) {
+  try {
+    const d = new Date(iso)
+    const now = Date.now()
+    const diff = now - d.getTime()
+    const mins = Math.floor(diff / 60000)
+    const hrs = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+    if (mins < 1) return 'ahora'
+    if (mins < 60) return `hace ${mins} min`
+    if (hrs < 24) return `hace ${hrs} h`
+    if (days < 7) return `hace ${days} d`
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
+  } catch {
+    return ''
+  }
+}
+
+function mapRowToItem(row: {
+  id: string
+  type: string
+  title: string
+  description?: string | null
+  created_at: string
+}): ActivityItem {
+  const t = (row.type || '').toLowerCase()
+  let kind: ActivityItem['type'] = 'system'
+  if (t === 'check_in' || t === 'check-in') kind = 'check-in'
+  else if (t === 'mint') kind = 'mint'
+  else if (t === 'transfer') kind = 'transfer'
+  else if (t === 'reward') kind = 'reward'
+  else if (t === 'verification' || t === 'phone') kind = 'verification'
+
+  return {
+    id: row.id,
+    type: kind,
+    title: row.title || 'Actividad',
+    description: row.description || undefined,
+    timestamp: formatTime(row.created_at),
     status: 'success',
-  },
-  {
-    id: '2',
-    type: 'mint',
-    title: 'Asset Minted',
-    description: 'AFTERPARTY VIP PASS',
-    timestamp: '1 day ago',
-    status: 'success',
-  },
-  {
-    id: '3',
-    type: 'transfer',
-    title: 'Ticket Transferred',
-    description: 'TO 0X82...F91A',
-    timestamp: '3 days ago',
-    status: 'success',
-  },
-  {
-    id: '4',
-    type: 'reward',
-    title: 'Reward Claimed',
-    description: 'OG Collector Badge',
-    timestamp: '1 week ago',
-    status: 'success',
-  },
-  {
-    id: '5',
-    type: 'verification',
-    title: 'Phone Verified',
-    description: '+52 ****1234',
-    timestamp: '2 weeks ago',
-    status: 'success',
-  },
-]
+  }
+}
 
 export default function HistoryPage() {
+  const [items, setItems] = useState<ActivityItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/history')
+        if (!res.ok) {
+          setError('No se pudo cargar el historial')
+          return
+        }
+        const json = await res.json()
+        const rows = json?.data?.activity || []
+        setItems(rows.map(mapRowToItem))
+      } catch {
+        setError('Error de red')
+      } finally {
+        setLoading(false)
+      }
+    }
+    void load()
+  }, [])
+
   return (
     <AuthLayout>
       <div className="p-4 md:p-6 lg:p-8 max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'var(--font-climate)' }}>
-            History
+            Historial
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Tu actividad on-chain en el protocolo
+            Participación verificada y continuidad después del check-in (sesión + registro en Ranti).
           </p>
         </div>
 
         <div className="bg-surface-container-low border border-border rounded-2xl p-4 md:p-6">
-          <ActivityTimeline items={activities} />
+          {loading ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">Cargando…</p>
+          ) : error ? (
+            <p className="text-sm text-destructive py-8 text-center">{error}</p>
+          ) : items.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              Aún no hay actividad. Haz check-in en un ticket para generar la primera prueba de participación.
+            </p>
+          ) : (
+            <ActivityTimeline items={items} />
+          )}
         </div>
       </div>
     </AuthLayout>

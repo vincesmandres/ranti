@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useOrganizer } from '@/lib/hooks/use-organizer'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
+import { ProtectedRoute } from '@/components/protected-route'
 
 type ModalType = 'none' | 'create-event' | 'success'
 
@@ -114,6 +115,7 @@ export default function OrganizerDashboard() {
   }
 
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-[#0E150C] flex">
       {/* Sidebar */}
       <aside className="w-64 border-r border-[#404A38]/10 flex flex-col fixed left-0 top-0 h-full bg-[#0E150C]">
@@ -611,5 +613,6 @@ export default function OrganizerDashboard() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   )
 }

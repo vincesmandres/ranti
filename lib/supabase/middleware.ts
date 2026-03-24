@@ -37,22 +37,10 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  await supabase.auth.getUser()
 
-  // Protected routes - redirect to login if not authenticated
-  const protectedPaths = ['/dashboard', '/organizer', '/tickets', '/rewards', '/history']
-  const isProtectedPath = protectedPaths.some(path => 
-    request.nextUrl.pathname.startsWith(path)
-  )
-
-  if (isProtectedPath && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    url.searchParams.set('login', 'true')
-    return NextResponse.redirect(url)
-  }
+  // Intentionally no NextResponse.redirect for app pages: wallet-first flows rely on
+  // client-side `ProtectedRoute` + `AuthLayout`. APIs still use `requireUser()` / cookies.
 
   return supabaseResponse
 }

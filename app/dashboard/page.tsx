@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { useEffect, useState } from 'react'
-import { ProtectedRoute } from '@/components/protected-route'
 import { AuthLayout } from '@/components/layouts/auth-layout'
-import { useAuth } from '@/lib/hooks/use-auth'
 import { useDashboard } from '@/lib/hooks/use-dashboard'
 import { TicketDetailModal } from '@/components/ticket-detail-modal'
 import type { DashboardData } from '@/lib/types'
@@ -32,50 +32,9 @@ const rewardIcons = {
   ),
 }
 
-const onChainActivity = [
-  { icon: 'check', label: 'Check-in Verified', sub: 'LOLLAPALOOZA 2024' },
-  { icon: 'mint', label: 'Asset Minted', sub: 'AFTERPARTY VIP PASS' },
-  { icon: 'transfer', label: 'Ticket Transferred', sub: 'TO 0X82...F91A' },
-]
-
-const tickets = [
-  {
-    id: 1,
-    name: 'CYBERPUNK\nNIGHTS',
-    venue: 'NEON DISTRICT HUB',
-    date: 'OCT 24',
-    year: '2024',
-    status: 'ACTIVE',
-    active: true,
-    bg: '#B8FF8C',
-    fg: '#0E150C',
-  },
-  {
-    id: 2,
-    name: 'SOLANA\nBREAKPOINT',
-    venue: 'CONVENTION CENTER',
-    date: 'NOV 12',
-    year: '2024',
-    status: 'ACTIVE',
-    active: true,
-    bg: '#161D14',
-    fg: '#B8FF8C',
-  },
-  {
-    id: 3,
-    name: 'SUMMER\nROOFTOP',
-    venue: 'SKY GARDEN',
-    date: 'AUG 15',
-    year: '2024',
-    status: 'USED',
-    active: false,
-    bg: '#161D14',
-    fg: '#5E6659',
-  },
-]
-
 export default function Dashboard() {
-  const { user } = useAuth()
+  const router = useRouter()
+  const { publicKey } = useWallet()
   const { data: dashboardData, isLoading: loading, isError, error, refetch } = useDashboard()
   const [rewardStatus, setRewardStatus] = useState<any>(null)
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
@@ -88,39 +47,34 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <AuthLayout>
-          <div className="flex flex-1 items-center justify-center">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              <p className="text-muted mt-4">Loading dashboard...</p>
-            </div>
+      <AuthLayout>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <p className="text-muted mt-4">Loading dashboard...</p>
           </div>
-        </AuthLayout>
-      </ProtectedRoute>
+        </div>
+      </AuthLayout>
     )
   }
 
   if (isError) {
     return (
-      <ProtectedRoute>
-        <AuthLayout>
-          <div className="flex flex-1 items-center justify-center">
-            <div className="text-center">
-              <p className="text-destructive mb-4">Error loading dashboard</p>
-              <button onClick={() => window.location.reload()} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">
-                Retry
-              </button>
-            </div>
+      <AuthLayout>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Error loading dashboard</p>
+            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">
+              Retry
+            </button>
           </div>
-        </AuthLayout>
-      </ProtectedRoute>
+        </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <ProtectedRoute>
-      <AuthLayout>
+    <AuthLayout>
       <div className="flex flex-1 overflow-hidden min-h-[calc(100vh-56px)]">
         {/* Left Panel */}
         <div className="w-[480px] border-r border-border flex flex-col overflow-y-auto">
@@ -162,9 +116,12 @@ export default function Dashboard() {
             <div className="flex-1 p-5">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-[10px] font-bold tracking-widest text-foreground uppercase">Rewards</p>
-                <button className="text-[10px] font-bold text-primary uppercase tracking-wide hover:underline">
-                  View All
-                </button>
+                <Link
+                  href="/rewards"
+                  className="text-[10px] font-bold text-primary uppercase tracking-wide hover:underline"
+                >
+                  Ver todo
+                </Link>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {[...(dashboardData?.rewards?.unlocked || []), ...(dashboardData?.rewards?.locked || [])].map((reward: any) => (
@@ -198,12 +155,13 @@ export default function Dashboard() {
             {/* On-chain Activity */}
             <div className="flex-1 p-5">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-bold tracking-widest text-foreground uppercase">On-chain Activity</p>
-                <button className="text-[10px] text-muted hover:text-primary transition-colors">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                  </svg>
-                </button>
+                <p className="text-[10px] font-bold tracking-widest text-foreground uppercase">Actividad</p>
+                <Link
+                  href="/history"
+                  className="text-[10px] font-bold text-primary uppercase tracking-wide hover:underline"
+                >
+                  Historial
+                </Link>
               </div>
               <div className="space-y-3">
                 {dashboardData?.activity?.map((item: any, i: number) => (
@@ -363,7 +321,10 @@ export default function Dashboard() {
       {/* Ticket Detail Modal */}
       {selectedTicket && (
         <TicketDetailModal
-          ticket={selectedTicket}
+          ticket={{
+            ...selectedTicket,
+            owner_wallet: publicKey?.toBase58(),
+          }}
           onClose={() => setSelectedTicket(null)}
           onActivate={async () => {
             const response = await fetch(`/api/tickets/${selectedTicket.id}/check-in`, {
@@ -375,12 +336,13 @@ export default function Dashboard() {
             })
             if (response.ok) {
               await refetch()
+              setSelectedTicket(null)
+              router.push(`/check-in/success?t=${selectedTicket.id}`)
             }
           }}
         />
       )}
     </AuthLayout>
-    </ProtectedRoute>
   )
 }
 

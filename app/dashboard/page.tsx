@@ -1,13 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { ProtectedRoute } from '@/components/protected-route'
+import { useRouter } from 'next/navigation'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { useMemo, useState } from 'react'
 import { AuthLayout } from '@/components/layouts/auth-layout'
-import { useAuth } from '@/lib/hooks/use-auth'
 import { useDashboard } from '@/lib/hooks/use-dashboard'
 import { TicketDetailModal } from '@/components/ticket-detail-modal'
-import type { DashboardData } from '@/lib/types'
 
 const rewardIcons = {
   'OG Collector': (
@@ -32,129 +31,87 @@ const rewardIcons = {
   ),
 }
 
-const onChainActivity = [
-  { icon: 'check', label: 'Check-in Verified', sub: 'LOLLAPALOOZA 2024' },
-  { icon: 'mint', label: 'Asset Minted', sub: 'AFTERPARTY VIP PASS' },
-  { icon: 'transfer', label: 'Ticket Transferred', sub: 'TO 0X82...F91A' },
-]
-
-const tickets = [
-  {
-    id: 1,
-    name: 'CYBERPUNK\nNIGHTS',
-    venue: 'NEON DISTRICT HUB',
-    date: 'OCT 24',
-    year: '2024',
-    status: 'ACTIVE',
-    active: true,
-    bg: '#B8FF8C',
-    fg: '#0E150C',
-  },
-  {
-    id: 2,
-    name: 'SOLANA\nBREAKPOINT',
-    venue: 'CONVENTION CENTER',
-    date: 'NOV 12',
-    year: '2024',
-    status: 'ACTIVE',
-    active: true,
-    bg: '#161D14',
-    fg: '#B8FF8C',
-  },
-  {
-    id: 3,
-    name: 'SUMMER\nROOFTOP',
-    venue: 'SKY GARDEN',
-    date: 'AUG 15',
-    year: '2024',
-    status: 'USED',
-    active: false,
-    bg: '#161D14',
-    fg: '#5E6659',
-  },
-]
-
 export default function Dashboard() {
-  const { user } = useAuth()
-  const { data: dashboardData, isLoading: loading, isError, error, refetch } = useDashboard()
-  const [rewardStatus, setRewardStatus] = useState<any>(null)
+  const router = useRouter()
+  const { publicKey } = useWallet()
+  const { data: dashboardData, isLoading: loading, isError, refetch } = useDashboard()
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
-
-  useEffect(() => {
-    if (dashboardData) {
-      setRewardStatus(dashboardData.rewards)
-    }
-  }, [dashboardData])
+  const allTickets = useMemo(
+    () => [
+      ...(dashboardData?.tickets.active || []),
+      ...(dashboardData?.tickets.checkedIn || []),
+      ...(dashboardData?.tickets.used || []),
+    ],
+    [dashboardData?.tickets.active, dashboardData?.tickets.checkedIn, dashboardData?.tickets.used],
+  )
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <AuthLayout>
-          <div className="flex flex-1 items-center justify-center">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              <p className="text-muted mt-4">Loading dashboard...</p>
-            </div>
+      <AuthLayout>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <p className="text-muted mt-4">Loading dashboard...</p>
           </div>
-        </AuthLayout>
-      </ProtectedRoute>
+        </div>
+      </AuthLayout>
     )
   }
 
   if (isError) {
     return (
-      <ProtectedRoute>
-        <AuthLayout>
-          <div className="flex flex-1 items-center justify-center">
-            <div className="text-center">
-              <p className="text-destructive mb-4">Error loading dashboard</p>
-              <button onClick={() => window.location.reload()} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">
-                Retry
-              </button>
-            </div>
+      <AuthLayout>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Error loading dashboard</p>
+            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">
+              Retry
+            </button>
           </div>
-        </AuthLayout>
-      </ProtectedRoute>
+        </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <ProtectedRoute>
-      <AuthLayout>
-      <div className="flex flex-1 overflow-hidden min-h-[calc(100vh-56px)]">
-        {/* Left Panel */}
-        <div className="w-[480px] border-r border-border flex flex-col overflow-y-auto">
-          {/* Score */}
-          <div className="p-6 border-b border-border">
-            <p className="text-[10px] font-bold tracking-widest text-muted uppercase mb-3">
-              Puntaje de Participacion
-            </p>
-            <div
-              className="text-[80px] font-bold text-primary leading-none mb-4"
-              style={{ fontFamily: 'var(--font-climate)' }}
-            >
-              {dashboardData?.participation?.score?.toLocaleString() || '0'}
+    <AuthLayout>
+      <div className="min-h-[calc(100vh-56px)] bg-[#0E150C]">
+        <div className="mx-auto grid max-w-[1280px] gap-6 px-6 pb-8 pt-10 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="space-y-6">
+            <div className="rounded-3xl border border-[#2F372C] bg-[#1A2217] p-6 md:p-8">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/90">User Dashboard · asistente</p>
+              <h1
+                className="mt-2 text-5xl uppercase text-primary md:text-6xl"
+                style={{ fontFamily: 'var(--font-climate)' }}
+              >
+                Inventory
+              </h1>
+              <p className="mt-2 max-w-xl text-sm text-muted">
+                Reputación, recompensas y actividad on-chain en una vista única.
+              </p>
             </div>
-            <div className="flex items-center gap-4 mb-3">
-              <div>
-                <p className="text-[10px] text-muted uppercase tracking-wide">Nivel</p>
-                <p className="text-xs font-bold text-foreground">Protocol Level {dashboardData?.participation?.level || 1}</p>
+
+            <div className="rounded-3xl border border-[#2F372C] bg-[#1A2217] p-6">
+              <div className="mb-2 flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">Puntaje de Participación</p>
+                  <p className="text-xs font-semibold text-foreground">
+                    Protocol Level {dashboardData?.participation?.level || 1}
+                  </p>
+                </div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+                  {dashboardData?.participation?.progress || 0}% al siguiente rango
+                </p>
               </div>
-              <div>
-                <p className="text-[10px] text-muted uppercase tracking-wide">Siguiente Rango</p>
-                <p className="text-xs font-bold text-foreground">{dashboardData?.participation?.progress || 0}% al siguiente rango</p>
+              <div className="text-[80px] leading-none text-primary" style={{ fontFamily: 'var(--font-climate)' }}>
+                {dashboardData?.participation?.score?.toLocaleString() || '0'}
+              </div>
+              <div className="mt-4 flex gap-1">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className={`h-2 flex-1 rounded-sm ${i < 11 ? 'bg-primary' : 'bg-[#2F372C]'}`} />
+                ))}
               </div>
             </div>
-            {/* Progress bar */}
-            <div className="flex gap-1 mt-1">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 flex-1 rounded-sm ${i < 11 ? 'bg-primary' : 'bg-border'}`}
-                />
-              ))}
-            </div>
-          </div>
 
           {/* Rewards + On-chain Activity */}
           <div className="flex flex-1 divide-x divide-border">
@@ -176,24 +133,36 @@ export default function Dashboard() {
                         : 'border-border hover:border-primary/40 hover:bg-primary/5 hover:scale-[1.02]'
                     }`}
                   >
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-3xl border border-[#2F372C] bg-[#1A2217] p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <p className="text-xl font-bold text-foreground">Rewards</p>
+                  <Link href="/rewards" className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#4ADDB4] hover:underline">
+                    Ver todo
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[...(dashboardData?.rewards?.unlocked || []), ...(dashboardData?.rewards?.locked || [])].map((reward: any) => (
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        !reward.unlocked ? 'bg-muted/10 text-muted' : 'bg-primary/20 text-primary'
-                      }`}
+                      key={reward.id}
+                      className={`rounded-xl border border-[#2F372C] bg-[#131A11] p-3 ${!reward.unlocked ? 'opacity-45' : ''}`}
                     >
-                      {rewardIcons[reward.name as keyof typeof rewardIcons]}
+                      <div
+                        className={`mb-2 flex h-10 w-10 items-center justify-center rounded-lg ${
+                          reward.unlocked ? 'bg-primary/15 text-primary' : 'bg-muted/10 text-muted'
+                        }`}
+                      >
+                        {rewardIcons[reward.name as keyof typeof rewardIcons]}
+                      </div>
+                      <p className="text-xs font-bold text-foreground">{reward.name}</p>
+                      <p className="mt-0.5 text-[10px] text-muted">{reward.description}</p>
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-foreground leading-tight">{reward.name}</p>
-                      <p className="text-[10px] text-muted mt-0.5">{reward.description}</p>
-                    </div>
-                  </div>
-                ))}
-                {(!dashboardData?.rewards || dashboardData.rewards.total === 0) && (
-                  <p className="text-xs text-muted col-span-2">No rewards yet</p>
-                )}
+                  ))}
+                  {(!dashboardData?.rewards || dashboardData.rewards.total === 0) && (
+                    <p className="col-span-2 text-xs text-muted">No rewards yet</p>
+                  )}
+                </div>
               </div>
-            </div>
 
             {/* On-chain Activity */}
             <div className="flex-1 p-5">
@@ -230,28 +199,53 @@ export default function Dashboard() {
                 )) || (
                   <p className="text-xs text-muted">No activity yet</p>
                 )}
+              <div className="rounded-3xl border border-[#2F372C] bg-[#1A2217] p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <p className="text-xl font-bold text-foreground">Actividad</p>
+                  <Link href="/history" className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#4ADDB4] hover:underline">
+                    Historial
+                  </Link>
+                </div>
+                <div className="space-y-3">
+                  {dashboardData?.activity?.length ? (
+                    dashboardData.activity.slice(0, 5).map((item: any, i: number) => (
+                      <div key={i} className="rounded-xl border border-[#2F372C] bg-[#131A11] p-3">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10">
+                            {item.type === 'check_in' && (
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8FF8C" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                            )}
+                            {item.type === 'mint' && (
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8FF8C" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                            )}
+                            {item.type === 'transfer' && (
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8FF8C" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-foreground">{item.title}</p>
+                            <p className="text-[10px] text-muted">{item.description}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted">No activity yet</p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </section>
 
-        {/* Right Panel - Mis Tickets */}
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          {/* Panel header */}
-          <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-            <h2
-              className="text-2xl font-bold text-foreground"
-              style={{ fontFamily: 'var(--font-climate)' }}
-            >
-              Mis Tickets
-            </h2>
-            <Link
-              href="/marketplace"
-              className="text-[10px] font-bold text-muted uppercase tracking-wide hover:text-primary transition-colors"
-            >
-              View All
-            </Link>
-          </div>
+          <aside className="flex h-full min-h-[700px] flex-col rounded-3xl border border-[#2F372C] bg-[#1A2217] p-4">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-3xl text-foreground" style={{ fontFamily: 'var(--font-climate)' }}>
+                Mis Tickets
+              </h2>
+              <Link href="/marketplace" className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted hover:text-primary">
+                View All
+              </Link>
+            </div>
 
           {/* Ticket list */}
           <div className="flex-1 px-6 space-y-4 pb-4 overflow-y-auto">
@@ -275,55 +269,67 @@ export default function Dashboard() {
                   >
                     <div
                       className="rounded-xl overflow-hidden transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/10"
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {dashboardData?.tickets && dashboardData.tickets.total > 0 ? (
+                allTickets.map((ticket: any) => {
+                  const ticketColors: { [key: string]: { bg: string; fg: string } } = {
+                    active: { bg: '#8BE655', fg: '#143800' },
+                    issued: { bg: '#8BE655', fg: '#143800' },
+                    checked_in: { bg: '#161D14', fg: '#B8FF8C' },
+                    used: { bg: '#161D14', fg: '#5E6659' },
+                  }
+                  const colors = ticketColors[ticket.status] || ticketColors.active
+                  const eventDate = ticket.events?.date || new Date().toISOString()
+                  const eventName = ticket.events?.name || 'Unknown Event'
+                  const eventVenue = ticket.events?.venue || 'TBA'
+
+                  return (
+                    <button
+                      type="button"
+                      key={ticket.id}
+                      onClick={() => setSelectedTicket({ ...ticket, event_name: eventName, event_date: eventDate, venue: eventVenue })}
+                      className={`relative w-full overflow-hidden rounded-xl text-left transition-transform hover:scale-[1.015] ${
+                        ticket.status === 'used' ? 'opacity-60 grayscale' : ''
+                      }`}
                       style={{ background: colors.bg }}
                     >
-                      <div className="p-6">
-                        {/* Top row */}
-                        <div className="flex justify-between items-start mb-8">
+                      <div className="p-4">
+                        <div className="mb-6 flex items-start justify-between">
                           <span
-                            className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em]"
+                            className="rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em]"
                             style={{
                               color: colors.fg,
-                              border: `1px solid ${colors.fg}40`,
-                              background: colors.bg === '#B8FF8C' ? '#14380010' : 'transparent',
+                              borderColor: `${colors.fg}45`,
+                              background: colors.bg === '#8BE655' ? '#14380010' : 'transparent',
                             }}
                           >
                             {ticket.statusLabel || ticket.status.toUpperCase()}
                           </span>
                           <div className="text-right">
-                            <p className="text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-grotesk)', color: colors.fg }}>
+                            <p className="text-[11px] font-bold uppercase" style={{ color: colors.fg }}>
                               {new Date(eventDate).toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }).toUpperCase()}
                             </p>
-                            <p className="text-xl font-black leading-none" style={{ fontFamily: 'var(--font-grotesk)', color: colors.fg }}>
+                            <p className="text-lg font-black leading-none" style={{ color: colors.fg }}>
                               {new Date(eventDate).getFullYear()}
                             </p>
                           </div>
                         </div>
 
-                        {/* Title */}
-                        <h3
-                          className="text-2xl uppercase leading-tight mb-4"
-                          style={{ fontFamily: 'var(--font-climate)', color: colors.fg }}
-                        >
+                        <h3 className="text-xl uppercase leading-tight" style={{ fontFamily: 'var(--font-climate)', color: colors.fg }}>
                           {eventName}
                         </h3>
 
-                        {/* Bottom row */}
-                        <div className="flex justify-between items-end pt-4 mt-8" style={{ borderTop: `1px solid ${colors.fg}20` }}>
+                        <div className="mt-5 flex items-end justify-between border-t pt-3" style={{ borderColor: `${colors.fg}25` }}>
                           <div>
-                            <p className="text-[10px] uppercase font-bold tracking-widest opacity-60" style={{ color: colors.fg }}>
+                            <p className="text-[10px] uppercase tracking-widest opacity-65" style={{ color: colors.fg }}>
                               Venue
                             </p>
-                            <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-grotesk)', color: colors.fg }}>
+                            <p className="text-sm font-bold" style={{ color: colors.fg }}>
                               {eventVenue}
                             </p>
                           </div>
-                          {/* QR Icon */}
-                          <div
-                            className="w-12 h-12 flex items-center justify-center rounded"
-                            style={{ background: colors.bg === '#B8FF8C' ? '#14380010' : '#B8FF8C10' }}
-                          >
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={colors.fg} strokeWidth="1.5">
+                          <div className="rounded p-2" style={{ background: colors.bg === '#8BE655' ? '#14380010' : '#B8FF8C10' }}>
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={colors.fg} strokeWidth="1.5">
                               <rect x="3" y="3" width="7" height="7" rx="1" />
                               <rect x="14" y="3" width="7" height="7" rx="1" />
                               <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -335,17 +341,13 @@ export default function Dashboard() {
                           </div>
                         </div>
                       </div>
-                    </div>
-                    {/* Decorative Notches */}
-                    <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
-                    <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-background rounded-full"></div>
-                  </div>
-                )
-              })
-            ) : (
-              <p className="text-xs text-muted text-center py-8">No tickets yet</p>
-            )}
-          </div>
+                    </button>
+                  )
+                })
+              ) : (
+                <p className="py-8 text-center text-xs text-muted">No tickets yet</p>
+              )}
+            </div>
 
           {/* Redimir button */}
           <div className="px-6 py-4 border-t border-border">
@@ -357,13 +359,26 @@ export default function Dashboard() {
               <span>Redimir Nuevo Ticket</span>
             </Link>
           </div>
+            <div className="mt-4 border-t border-[#2F372C] pt-4">
+              <Link
+                href="/marketplace"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#2F372C] py-3 text-xs font-bold uppercase tracking-wide text-foreground transition-all hover:border-primary hover:text-primary"
+              >
+                <span>+</span>
+                <span>Redimir Nuevo Ticket</span>
+              </Link>
+            </div>
+          </aside>
         </div>
       </div>
 
       {/* Ticket Detail Modal */}
       {selectedTicket && (
         <TicketDetailModal
-          ticket={selectedTicket}
+          ticket={{
+            ...selectedTicket,
+            owner_wallet: publicKey?.toBase58(),
+          }}
           onClose={() => setSelectedTicket(null)}
           onActivate={async () => {
             const response = await fetch(`/api/tickets/${selectedTicket.id}/check-in`, {
@@ -375,12 +390,13 @@ export default function Dashboard() {
             })
             if (response.ok) {
               await refetch()
+              setSelectedTicket(null)
+              router.push(`/check-in/success?t=${selectedTicket.id}`)
             }
           }}
         />
       )}
     </AuthLayout>
-    </ProtectedRoute>
   )
 }
 

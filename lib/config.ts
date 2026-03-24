@@ -4,7 +4,7 @@ export const config = {
   // API
   apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   
-  // Solana
+  // Solana — `RantiWalletProvider` uses `solanaRpcUrl` for Connection + adapter cluster via `solanaNetwork`.
   solanaNetwork: process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet',
   solanaRpcUrl: process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com',
   programId: process.env.NEXT_PUBLIC_PROGRAM_ID || '',

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { TicketLifecycleStrip } from '@/components/ui/ticket-lifecycle-strip'
 
 interface TicketDetailModalProps {
   ticket: {
@@ -19,6 +21,15 @@ interface TicketDetailModalProps {
 
 export function TicketDetailModal({ ticket, onClose, onActivate }: TicketDetailModalProps) {
   const [isActivating, setIsActivating] = useState(false)
+  const { publicKey } = useWallet()
+  const ownerDisplay = publicKey
+    ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
+    : ticket.owner_wallet
+      ? `${ticket.owner_wallet.slice(0, 4)}...${ticket.owner_wallet.slice(-4)}`
+      : '—'
+
+  const statusKey = String(ticket.status || '').toLowerCase()
+  const canActivate = ['active', 'issued', 'claimed'].includes(statusKey)
 
   const handleActivate = async () => {
     setIsActivating(true)
@@ -85,11 +96,11 @@ export function TicketDetailModal({ ticket, onClose, onActivate }: TicketDetailM
             </div>
 
             {/* Owner and ID */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <p className="text-[10px] text-muted uppercase tracking-widest mb-1">OWNER</p>
                 <p className="text-sm font-mono text-foreground">
-                  {ticket.owner_wallet ? `${ticket.owner_wallet.slice(0, 4)}...${ticket.owner_wallet.slice(-4)}` : '0x82...F91A'}
+                  {ownerDisplay}
                 </p>
               </div>
               <div>
@@ -97,6 +108,8 @@ export function TicketDetailModal({ ticket, onClose, onActivate }: TicketDetailM
                 <p className="text-xl font-bold text-primary">#{ticket.token_id || '8812'}</p>
               </div>
             </div>
+
+            <TicketLifecycleStrip status={ticket.status} className="mb-6" compact />
 
             {/* QR Code placeholder */}
             <div className="bg-[#0E150C] border border-[#2a3528] rounded-xl p-4 mb-6 flex items-center justify-center">
@@ -133,7 +146,7 @@ export function TicketDetailModal({ ticket, onClose, onActivate }: TicketDetailM
             </div>
 
             {/* Activate button */}
-            {ticket.status === 'active' && (
+            {canActivate && (
               <button
                 onClick={handleActivate}
                 disabled={isActivating}
@@ -145,12 +158,12 @@ export function TicketDetailModal({ ticket, onClose, onActivate }: TicketDetailM
                     ACTIVATING...
                   </span>
                 ) : (
-                  'ACTIVATE ACCESS KEY'
+                  'Confirmar check-in'
                 )}
               </button>
             )}
 
-            {ticket.status === 'checked_in' && (
+            {statusKey === 'checked_in' && (
               <div className="w-full py-4 bg-[#2a3528] text-primary font-bold rounded-xl text-sm uppercase tracking-wide text-center">
                 CHECKED IN
               </div>

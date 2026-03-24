@@ -13,8 +13,9 @@ interface ProtectedRouteProps {
 const BYPASS_AUTH_FOR_TESTING = process.env.NEXT_PUBLIC_BYPASS_AUTH_FOR_TESTING === 'true'
 
 /**
- * Wrapper component to protect routes behind authentication
- * Accepts either traditional auth OR a connected Solana wallet
+ * Client-side gate for “app shell” routes. Middleware only refreshes Supabase cookies
+ * and cannot see wallet state; this component is the single UI source of truth:
+ * Supabase session OR connected Solana wallet (wallet-first demo).
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading: authLoading } = useAuth()
@@ -29,6 +30,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Still loading if auth is loading, wallet is connecting, or wallet hasn't settled
   const isWalletLoading = connecting || disconnecting
   const loading = authLoading || isWalletLoading
+  const walletSettling = connecting || disconnecting
+  const isAuthenticated = Boolean(user) || (connected && Boolean(publicKey))
+  // Do not redirect while Supabase is loading unless wallet is already connected; never
+  // redirect during wallet autoConnect/connect — avoids false “logged out” during demo.
+  const loading = (authLoading && !connected) || walletSettling
 
   // Bypass auth for testing mode
   if (BYPASS_AUTH_FOR_TESTING) {

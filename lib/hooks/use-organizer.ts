@@ -33,6 +33,7 @@ interface OrganizerData {
   events: OrganizerEvent[]
   members: CommunityMember[]
   stats: OrganizerStats
+  source?: 'live' | 'demo-fallback'
 }
 
 interface CreateEventData {
@@ -51,6 +52,9 @@ interface TransactionData {
   organizer_signature: string
   asset_id: string
   transaction_hash: string
+  proof_mode?: 'demo-backend-record' | 'onchain'
+  network?: string
+  reference_url?: string | null
 }
 
 export function useOrganizer() {
@@ -67,7 +71,7 @@ export function useOrganizer() {
       
       if (!response.ok) {
         if (response.status === 401) {
-          // Return mock data for demo purposes when not authenticated
+          // Demo-safe fallback when organizer API auth is unavailable.
           setData({
             profile: null,
             events: [
@@ -82,7 +86,8 @@ export function useOrganizer() {
               { user_id: '4', name: 'Marcus Holloway', wallet: 'W9q2...aA8s', participation: 3, status: 'Verified' },
               { user_id: '5', name: 'Sarah Connor', wallet: 'T800...Skyn', participation: 2, status: 'Verified' },
             ],
-            stats: { totalEvents: 3, activeEvents: 2, totalTicketsSold: 1838, totalMembers: 1284 }
+            stats: { totalEvents: 3, activeEvents: 2, totalTicketsSold: 1838, totalMembers: 1284 },
+            source: 'demo-fallback',
           })
           return
         }
@@ -90,7 +95,10 @@ export function useOrganizer() {
       }
 
       const result = await response.json()
-      setData(result)
+      setData({
+        ...result,
+        source: 'live',
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {

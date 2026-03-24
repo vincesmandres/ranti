@@ -7,6 +7,7 @@ import { useOrganizer } from '@/lib/hooks/use-organizer'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { ProtectedRoute } from '@/components/protected-route'
+import { config } from '@/lib/config'
 
 type ModalType = 'none' | 'create-event' | 'success'
 
@@ -15,6 +16,9 @@ interface TransactionData {
   organizer_signature: string
   asset_id: string
   transaction_hash: string
+  proof_mode?: 'demo-backend-record' | 'onchain'
+  network?: string
+  reference_url?: string | null
 }
 
 export default function OrganizerDashboard() {
@@ -37,6 +41,8 @@ export default function OrganizerDashboard() {
   const shortAddress = publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
     : null
+  const isDemoFallback = data?.source === 'demo-fallback'
+  const isDemoProof = transactionData?.proof_mode !== 'onchain'
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -256,6 +262,14 @@ export default function OrganizerDashboard() {
             {/* Banner */}
             <div className="bg-gradient-to-r from-[#1A2217] to-[#252C21] rounded-xl p-6 border border-[#404A38]/10 relative overflow-hidden">
               <div className="relative z-10">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">
+                  Organizer dashboard · protocol
+                </p>
+                {isDemoFallback && (
+                  <p className="mb-2 inline-flex items-center gap-1 rounded-md border border-secondary/30 bg-secondary/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-secondary">
+                    Demo dataset · auth fallback
+                  </p>
+                )}
                 <h2 className="text-3xl font-bold text-primary mb-2" style={{ fontFamily: 'var(--font-climate)' }}>
                   READY TO SCALE?
                 </h2>
@@ -509,7 +523,7 @@ export default function OrganizerDashboard() {
                 )}
               </button>
               <p className="text-[9px] text-muted text-center mt-4">
-                By signing, you authorize the immutable digital record to be created and logged on the Solana network.
+                By signing, you authorize event registration in the protocol ledger (demo-safe evidence in this build).
               </p>
             </div>
           </div>
@@ -538,6 +552,9 @@ export default function OrganizerDashboard() {
               <h2 className="text-3xl font-bold text-primary uppercase" style={{ fontFamily: 'var(--font-climate)' }}>
                 EVENTO CREADO<br/>EXITOSAMENTE
               </h2>
+              <p className="text-[10px] text-muted uppercase tracking-widest mt-2">
+                Event registered for protocol operations
+              </p>
             </div>
 
             {/* Transaction Data */}
@@ -549,8 +566,15 @@ export default function OrganizerDashboard() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  CONFIRMED ON SOLANA MAINNET
+                  {isDemoProof ? 'REGISTERED IN RANTI DEMO LEDGER' : 'CONFIRMED ON SOLANA'}
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-[#404A38]/10 pb-4">
+                <span className="text-[10px] text-muted uppercase tracking-widest">Proof Layer</span>
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${isDemoProof ? 'text-secondary' : 'text-primary'}`}>
+                  {isDemoProof ? 'Demo backend evidence' : 'On-chain confirmation'}
+                </span>
               </div>
 
               {/* Signatures */}
@@ -584,20 +608,28 @@ export default function OrganizerDashboard() {
               {/* Transaction Hash */}
               <div className="flex items-center justify-between bg-[#161D14] p-4 rounded-lg">
                 <div>
-                  <span className="text-[10px] text-muted uppercase tracking-widest block mb-1">Transaction Hash</span>
+                  <span className="text-[10px] text-muted uppercase tracking-widest block mb-1">
+                    {isDemoProof ? 'Evidence Reference' : 'Transaction Hash'}
+                  </span>
                   <code className="text-xs text-foreground/60 font-mono">{transactionData?.transaction_hash || '0x...'}</code>
                 </div>
-                <a 
-                  href={`https://solscan.io/tx/${transactionData?.transaction_hash || ''}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-[#252C21] px-3 py-2 rounded-lg text-secondary text-xs font-bold hover:bg-[#2F372C] transition-colors"
-                >
-                  SOLSCAN
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
+                {isDemoProof ? (
+                  <span className="flex items-center gap-2 bg-[#252C21] px-3 py-2 rounded-lg text-muted text-xs font-bold">
+                    {config.solanaNetwork.toUpperCase()} · DEMO
+                  </span>
+                ) : (
+                  <a 
+                    href={transactionData?.reference_url || `https://solscan.io/tx/${transactionData?.transaction_hash || ''}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-[#252C21] px-3 py-2 rounded-lg text-secondary text-xs font-bold hover:bg-[#2F372C] transition-colors"
+                  >
+                    SOLSCAN
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                )}
               </div>
             </div>
 
@@ -613,6 +645,9 @@ export default function OrganizerDashboard() {
               <img src="/ranti-logo.svg" alt="Ranti Protocol" className="w-4 h-4 opacity-60" />
               <p className="text-[10px] text-muted uppercase tracking-widest">Protocol v2.0.4 // Solana Ecosystem</p>
             </div>
+            <p className="text-[10px] text-muted text-center mt-4 uppercase tracking-widest">
+              Ranti Protocol v2.0.4 // Solana {transactionData?.network || config.solanaNetwork}
+            </p>
           </div>
         </div>
       )}

@@ -21,6 +21,7 @@ interface TicketDetailModalProps {
 
 export function TicketDetailModal({ ticket, onClose, onActivate }: TicketDetailModalProps) {
   const [isActivating, setIsActivating] = useState(false)
+  const [activateError, setActivateError] = useState<string | null>(null)
   const { publicKey } = useWallet()
   const ownerDisplay = publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
@@ -33,10 +34,13 @@ export function TicketDetailModal({ ticket, onClose, onActivate }: TicketDetailM
 
   const handleActivate = async () => {
     setIsActivating(true)
+    setActivateError(null)
     try {
       if (onActivate) {
         await onActivate()
       }
+    } catch (error) {
+      setActivateError(error instanceof Error ? error.message : 'No se pudo completar el check-in on-chain.')
     } finally {
       setIsActivating(false)
     }
@@ -147,20 +151,27 @@ export function TicketDetailModal({ ticket, onClose, onActivate }: TicketDetailM
 
             {/* Activate button */}
             {canActivate && (
-              <button
-                onClick={handleActivate}
-                disabled={isActivating}
-                className="w-full py-4 bg-primary text-primary-foreground font-bold rounded-xl text-sm uppercase tracking-wide hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                {isActivating ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    ACTIVATING...
-                  </span>
-                ) : (
-                  'Confirmar check-in'
-                )}
-              </button>
+              <>
+                <button
+                  onClick={handleActivate}
+                  disabled={isActivating}
+                  className="w-full py-4 bg-primary text-primary-foreground font-bold rounded-xl text-sm uppercase tracking-wide hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {isActivating ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      ACTIVATING...
+                    </span>
+                  ) : (
+                    'Confirmar check-in'
+                  )}
+                </button>
+                {activateError ? (
+                  <p className="mt-2 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
+                    {activateError}
+                  </p>
+                ) : null}
+              </>
             )}
 
             {statusKey === 'checked_in' && (

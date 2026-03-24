@@ -3,6 +3,13 @@ import { requireUser } from '@/lib/server/auth'
 import { canTransitionTicketState, isCheckInState, normalizeTicketState } from '@/lib/server/ticket-state'
 import { buildIdempotencyKey, isIdempotentReplay } from '@/lib/server/idempotency'
 import { getClientIdentifier, rateLimit } from '@/lib/server/rate-limit'
+import { assertValidPublicKey, verifyCheckInTransaction } from '@/lib/server/solana-attestation'
+import { isOnChainCheckInEnabled } from '@/lib/solana/network'
+
+type CheckInBody = {
+  attestationId?: string
+  txSignature?: string
+}
 
 export async function POST(
   request: NextRequest,
@@ -36,6 +43,8 @@ export async function POST(
       })
     }
 
+    const body = (await request.json().catch(() => ({}))) as CheckInBody
+
     const { data: ticket, error: ticketError } = await supabase
       .from('tickets')
       .select('id, status, user_id, event_id')
@@ -65,6 +74,50 @@ export async function POST(
         { error: `Cannot check in from state: ${currentState}` },
         { status: 409 },
       )
+    }
+
+    let verification: Awaited<ReturnType<typeof verifyCheckInTransaction>> | null = null
+    if (isOnChainCheckInEnabled()) {
+      if (!body.attestationId || !body.txSignature) {
+        return NextResponse.json(
+          {
+            error:
+              'On-chain check-in requires attestationId + txSignature. Complete wallet signing flow first.',
+          },
+          { status: 400 },
+        )
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('wallet_address')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError || !profile?.wallet_address) {
+        return NextResponse.json(
+          { error: 'Profile has no linked wallet for on-chain verification' },
+          { status: 412 },
+        )
+      }
+
+      const walletAddress = assertValidPublicKey(profile.wallet_address)
+      try {
+        verification = await verifyCheckInTransaction({
+          txSignature: body.txSignature,
+          expectedSigner: walletAddress,
+          expectedTicketId: id,
+          expectedAttestationId: body.attestationId,
+        })
+      } catch (verifyError) {
+        return NextResponse.json(
+          {
+            error:
+              verifyError instanceof Error ? verifyError.message : 'Unable to validate on-chain transaction',
+          },
+          { status: 409 },
+        )
+      }
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -102,16 +155,23 @@ export async function POST(
         ticket_id: ticket.id,
         event_id: ticket.event_id,
         idempotency_key: idempotencyKey,
+        attestation_id: body.attestationId || null,
+        tx_signature: body.txSignature || null,
+        onchain_verification: verification,
       },
     })
 
     return NextResponse.json({
       success: true,
-      data: updated,
+      data: {
+        ...updated,
+        attestationId: body.attestationId || null,
+        txSignature: body.txSignature || null,
+        onChainVerified: Boolean(verification),
+      },
     })
   } catch (error) {
     console.error('POST /api/tickets/[id]/check-in exception:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/server/auth'
+import { getSolanaCluster, isOnChainCheckInEnabled } from '@/lib/solana/network'
+import { assertValidPublicKey, verifyCheckInTransaction } from '@/lib/server/solana-attestation'
 
-function featureEnabled() {
-  return process.env.RANTI_ENABLE_SOLANA_COMMIT === 'true'
+type CommitBody = {
+  attestationId?: string
+  ticketId?: string
+  txSignature?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -10,29 +14,76 @@ export async function POST(request: NextRequest) {
     const { supabase, user, response } = await requireUser()
     if (response || !user) return response
 
-    if (!featureEnabled()) {
+    if (!isOnChainCheckInEnabled()) {
       return NextResponse.json(
-        { error: 'Solana commit is disabled in this environment' },
+        { error: 'On-chain attestation commit is disabled in this environment' },
         { status: 412 },
       )
     }
 
-    const { attestationId, txSignature } = await request.json()
-    if (!attestationId || !txSignature) {
+    const { attestationId, txSignature, ticketId } = (await request.json()) as CommitBody
+    if (!attestationId || !txSignature || !ticketId) {
       return NextResponse.json(
-        { error: 'attestationId and txSignature are required' },
+        { error: 'attestationId, ticketId and txSignature are required' },
         { status: 400 },
       )
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('wallet_address')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile?.wallet_address) {
+      return NextResponse.json(
+        { error: 'Wallet is not linked to profile for on-chain verification' },
+        { status: 412 },
+      )
+    }
+
+    const walletAddress = assertValidPublicKey(profile.wallet_address)
+
+    let verification
+    try {
+      verification = await verifyCheckInTransaction({
+        txSignature,
+        expectedSigner: walletAddress,
+        expectedTicketId: ticketId,
+        expectedAttestationId: attestationId,
+      })
+    } catch (verifyError) {
+      return NextResponse.json(
+        { error: verifyError instanceof Error ? verifyError.message : 'Unable to validate transaction' },
+        { status: 409 },
+      )
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from('attestations')
+      .select('id, payload')
+      .eq('id', attestationId)
+      .eq('ticket_id', ticketId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (existingError || !existing) {
+      return NextResponse.json({ error: 'Attestation not found' }, { status: 404 })
     }
 
     const { data: updated, error } = await supabase
       .from('attestations')
       .update({
-        status: 'committed_devnet',
+        status: `committed_${getSolanaCluster()}`,
         tx_signature: txSignature,
         committed_at: new Date().toISOString(),
+        payload: {
+          ...(typeof existing.payload === 'object' && existing.payload ? existing.payload : {}),
+          verification,
+        },
       })
       .eq('id', attestationId)
+      .eq('ticket_id', ticketId)
       .eq('user_id', user.id)
       .select('*')
       .single()
@@ -50,4 +101,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

@@ -99,6 +99,20 @@ export default function HomePage() {
     router.push(role === 'user' ? '/dashboard' : '/organizer')
   }
 
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return
+    setIsLoading(true)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      setResendTimer(60)
+      setOtpValues(['', '', '', '', '', ''])
+    } catch {
+      setOtpError('Error al reenviar el codigo')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleLogout = async () => {
     setShowWalletMenu(false)
     await disconnect()

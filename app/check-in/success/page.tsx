@@ -14,7 +14,6 @@ function CheckInSuccessContent() {
   const searchParams = useSearchParams()
   const ticketId = searchParams.get('t')
   const txSignature = searchParams.get('tx')
-  const checkInTxSignature = searchParams.get('cktx')
   const attestationIdParam = searchParams.get('a')
   const { publicKey } = useWallet()
   const network = config.solanaNetwork
@@ -71,7 +70,7 @@ function CheckInSuccessContent() {
               <span className="text-primary">{txSignature ? '✓' : '!'}</span>
               <span>
                 {txSignature
-                  ? 'Devnet Anchor transactions signed and confirmed.'
+                  ? 'Devnet memo transaction signed and confirmed.'
                   : 'No transaction signature provided in URL. Re-run check-in from ticket view.'}
               </span>
             </li>
@@ -114,7 +113,7 @@ function CheckInSuccessContent() {
           </div>
 
           <div className="rounded-lg border border-dashed border-border bg-background/50 p-3">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Commit tx (program)</p>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Program transaction</p>
             {txSignature ? (
               <p className="break-all font-mono text-xs text-primary">{txSignature}</p>
             ) : (

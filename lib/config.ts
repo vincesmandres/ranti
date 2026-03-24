@@ -1,5 +1,4 @@
 import { getSolanaCluster, getSolanaRpcUrl, isOnChainCheckInEnabled } from '@/lib/solana/network'
-import { getRantiProgramIdString } from '@/lib/solana/anchor-client'
 
 // Ranti Protocol Configuration
 
@@ -10,7 +9,7 @@ export const config = {
   // Solana
   solanaNetwork: getSolanaCluster(),
   solanaRpcUrl: getSolanaRpcUrl(),
-  programId: process.env.NEXT_PUBLIC_PROGRAM_ID || getRantiProgramIdString(),
+  programId: process.env.NEXT_PUBLIC_PROGRAM_ID || '',
 
   // Supabase
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || '',

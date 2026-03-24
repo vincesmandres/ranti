@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/server/auth'
 import { canTransitionTicketState, isCheckInState, normalizeTicketState } from '@/lib/server/ticket-state'
 import { buildIdempotencyKey, isIdempotentReplay } from '@/lib/server/idempotency'
 import { getClientIdentifier, rateLimit } from '@/lib/server/rate-limit'
+import { assertValidPublicKey, verifyCheckInTransaction } from '@/lib/server/solana-attestation'
 import { isOnChainCheckInEnabled } from '@/lib/solana/network'
 
 type CheckInBody = {
@@ -78,61 +79,47 @@ export async function POST(
       )
     }
 
-    let verification: Record<string, unknown> | null = null
+    let verification: Awaited<ReturnType<typeof verifyCheckInTransaction>> | null = null
     if (isOnChainCheckInEnabled()) {
-      if (!body.attestationId || !body.txSignature || !body.checkInTxSignature) {
+      if (!body.attestationId || !body.txSignature) {
         return NextResponse.json(
           {
             error:
-              'On-chain check-in requires attestationId + txSignature + checkInTxSignature.',
+              'On-chain check-in requires attestationId + txSignature. Complete wallet signing flow first.',
           },
           { status: 400 },
         )
       }
 
-      const { data: attestation, error: attestationError } = await supabase
-        .from('attestations')
-        .select('id, ticket_id, tx_signature, status, payload')
-        .eq('id', body.attestationId)
-        .eq('ticket_id', id)
-        .eq('user_id', user.id)
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('wallet_address')
+        .eq('id', user.id)
         .single()
 
-      if (attestationError || !attestation) {
+      if (profileError || !profile?.wallet_address) {
         return NextResponse.json(
-          { error: 'Committed attestation not found for this ticket/user' },
-          { status: 409 },
+          { error: 'Profile has no linked wallet for on-chain verification' },
+          { status: 412 },
         )
       }
 
-      const status = String(attestation.status || '')
-      if (!status.startsWith('committed_')) {
+      const walletAddress = assertValidPublicKey(profile.wallet_address)
+      try {
+        verification = await verifyCheckInTransaction({
+          txSignature: body.txSignature,
+          expectedSigner: walletAddress,
+          expectedTicketId: id,
+          expectedAttestationId: body.attestationId,
+        })
+      } catch (verifyError) {
         return NextResponse.json(
-          { error: 'Attestation exists but is not committed on-chain' },
+          {
+            error:
+              verifyError instanceof Error ? verifyError.message : 'Unable to validate on-chain transaction',
+          },
           { status: 409 },
         )
-      }
-
-      if (attestation.tx_signature !== body.txSignature) {
-        return NextResponse.json(
-          { error: 'Commit tx signature does not match attestation record' },
-          { status: 409 },
-        )
-      }
-
-      const payload = (attestation.payload || {}) as Record<string, unknown>
-      if (payload.checkin_tx_signature !== body.checkInTxSignature) {
-        return NextResponse.json(
-          { error: 'Check-in tx signature does not match attestation record' },
-          { status: 409 },
-        )
-      }
-
-      verification = {
-        commit_tx_signature: body.txSignature,
-        checkin_tx_signature: body.checkInTxSignature,
-        checkin_pda: body.checkinPda || payload.checkin_pda || null,
-        attestation_pda: body.attestationPda || payload.attestation_pda || null,
       }
     }
 

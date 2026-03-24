@@ -290,7 +290,6 @@ export default function Dashboard() {
 
             const chainResult = await executeOnChainCheckIn({
               ticketId: selectedTicket.id,
-              eventId: selectedTicket.event_id || selectedTicket.id,
               walletPublicKey: publicKey,
               sendTransaction,
             })
@@ -303,10 +302,7 @@ export default function Dashboard() {
               },
               body: JSON.stringify({
                 attestationId: chainResult.attestationId,
-                txSignature: chainResult.commitTxSignature,
-                checkInTxSignature: chainResult.checkInTxSignature,
-                checkinPda: chainResult.checkinPda,
-                attestationPda: chainResult.attestationPda,
+                txSignature: chainResult.txSignature,
               }),
             })
             if (!response.ok) {
@@ -319,8 +315,7 @@ export default function Dashboard() {
             const params = new URLSearchParams({
               t: selectedTicket.id,
               a: chainResult.attestationId,
-              tx: chainResult.commitTxSignature,
-              cktx: chainResult.checkInTxSignature,
+              tx: chainResult.txSignature,
               cluster: chainResult.cluster,
             })
             router.push(`/check-in/success?${params.toString()}`)

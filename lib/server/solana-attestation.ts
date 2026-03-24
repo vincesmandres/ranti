@@ -81,31 +81,32 @@ export async function verifyProgramTransaction(
   const signerMatched = parsedTx.transaction.message.accountKeys.some(
     (account) => account.signer && account.pubkey.toBase58() === input.expectedSigner,
   )
+
   if (!signerMatched) {
     throw new Error('Transaction signer does not match authenticated wallet')
   }
 
-  const prefix = expectedPrefix(input)
+  const memoInstruction = parsedTx.transaction.message.instructions.find((ix) => {
+    if ('programId' in ix) {
+      return ix.programId.toBase58() === MEMO_PROGRAM_ID
+    }
 
-  const ixMatched = parsedTx.transaction.message.instructions.some((instruction) => {
-    if (!('programId' in instruction)) return false
-    if (instruction.programId.toBase58() !== programId) return false
-    const rawData = (instruction as { data?: string }).data
-    if (!rawData) return false
-    const decodedData = bs58.decode(rawData)
-    return Buffer.from(decodedData).subarray(0, prefix.length).equals(prefix)
+    return ix.program === 'spl-memo'
   })
 
-  if (!ixMatched) {
-    throw new Error('Anchor instruction data does not match expected payload')
+  const memo = memoInstruction ? tryParseMemo(memoInstruction) : null
+  const memoMatched = memoContainsExpectations(memo, input.expectedTicketId, input.expectedAttestationId)
+
+  if (!memoMatched) {
+    throw new Error('Memo instruction does not match attestation payload')
   }
 
   return {
     slot: parsedTx.slot,
     cluster,
-    programId,
     signerMatched,
-    instructionMatched: ixMatched,
+    memoMatched,
+    memo,
   }
 }
 
@@ -114,23 +115,5 @@ export function assertValidPublicKey(key: string) {
     return new PublicKey(key).toBase58()
   } catch {
     throw new Error('Invalid wallet address')
-  }
-}
-
-export async function assertAccountOwnedByProgram(address: string) {
-  const connection = new Connection(getSolanaRpcUrl(), 'confirmed')
-  const programId = getRantiProgramId()
-  const accountInfo = await connection.getAccountInfo(new PublicKey(address), 'confirmed')
-
-  if (!accountInfo) throw new Error(`Expected program account ${address} was not found`)
-  if (!accountInfo.owner.equals(programId)) {
-    throw new Error(`Account ${address} is not owned by configured program`)
-  }
-
-  return {
-    lamports: accountInfo.lamports,
-    owner: accountInfo.owner.toBase58(),
-    executable: accountInfo.executable,
-    dataLength: accountInfo.data.length,
   }
 }

@@ -14,7 +14,6 @@ function CheckInSuccessContent() {
   const searchParams = useSearchParams()
   const ticketId = searchParams.get('t')
   const txSignature = searchParams.get('tx')
-  const checkInTxSignature = searchParams.get('cktx')
   const attestationIdParam = searchParams.get('a')
   const { publicKey } = useWallet()
   const network = config.solanaNetwork
@@ -108,8 +107,8 @@ function CheckInSuccessContent() {
               <p className="break-all font-mono text-xs text-foreground">{walletShort}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Attendance id</p>
-              <p className="break-all font-mono text-xs text-primary">{attestationId}</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Attendance id</p>
+            <p className="break-all font-mono text-xs text-primary">{attestationId}</p>
             </div>
           </div>
 

@@ -3,6 +3,15 @@ import { requireUser } from '@/lib/server/auth'
 import { canTransitionTicketState, isCheckInState, normalizeTicketState } from '@/lib/server/ticket-state'
 import { buildIdempotencyKey, isIdempotentReplay } from '@/lib/server/idempotency'
 import { getClientIdentifier, rateLimit } from '@/lib/server/rate-limit'
+import { isOnChainCheckInEnabled } from '@/lib/solana/network'
+
+type CheckInBody = {
+  attestationId?: string
+  txSignature?: string
+  checkInTxSignature?: string
+  checkinPda?: string
+  attestationPda?: string
+}
 
 export async function POST(
   request: NextRequest,
@@ -36,6 +45,8 @@ export async function POST(
       })
     }
 
+    const body = (await request.json().catch(() => ({}))) as CheckInBody
+
     const { data: ticket, error: ticketError } = await supabase
       .from('tickets')
       .select('id, status, user_id, event_id')
@@ -65,6 +76,64 @@ export async function POST(
         { error: `Cannot check in from state: ${currentState}` },
         { status: 409 },
       )
+    }
+
+    let verification: Record<string, unknown> | null = null
+    if (isOnChainCheckInEnabled()) {
+      if (!body.attestationId || !body.txSignature || !body.checkInTxSignature) {
+        return NextResponse.json(
+          {
+            error:
+              'On-chain check-in requires attestationId + txSignature + checkInTxSignature.',
+          },
+          { status: 400 },
+        )
+      }
+
+      const { data: attestation, error: attestationError } = await supabase
+        .from('attestations')
+        .select('id, ticket_id, tx_signature, status, payload')
+        .eq('id', body.attestationId)
+        .eq('ticket_id', id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (attestationError || !attestation) {
+        return NextResponse.json(
+          { error: 'Committed attestation not found for this ticket/user' },
+          { status: 409 },
+        )
+      }
+
+      const status = String(attestation.status || '')
+      if (!status.startsWith('committed_')) {
+        return NextResponse.json(
+          { error: 'Attestation exists but is not committed on-chain' },
+          { status: 409 },
+        )
+      }
+
+      if (attestation.tx_signature !== body.txSignature) {
+        return NextResponse.json(
+          { error: 'Commit tx signature does not match attestation record' },
+          { status: 409 },
+        )
+      }
+
+      const payload = (attestation.payload || {}) as Record<string, unknown>
+      if (payload.checkin_tx_signature !== body.checkInTxSignature) {
+        return NextResponse.json(
+          { error: 'Check-in tx signature does not match attestation record' },
+          { status: 409 },
+        )
+      }
+
+      verification = {
+        commit_tx_signature: body.txSignature,
+        checkin_tx_signature: body.checkInTxSignature,
+        checkin_pda: body.checkinPda || payload.checkin_pda || null,
+        attestation_pda: body.attestationPda || payload.attestation_pda || null,
+      }
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -102,16 +171,23 @@ export async function POST(
         ticket_id: ticket.id,
         event_id: ticket.event_id,
         idempotency_key: idempotencyKey,
+        attestation_id: body.attestationId || null,
+        tx_signature: body.txSignature || null,
+        onchain_verification: verification,
       },
     })
 
     return NextResponse.json({
       success: true,
-      data: updated,
+      data: {
+        ...updated,
+        attestationId: body.attestationId || null,
+        txSignature: body.txSignature || null,
+        onChainVerified: Boolean(verification),
+      },
     })
   } catch (error) {
     console.error('POST /api/tickets/[id]/check-in exception:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

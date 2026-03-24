@@ -11,6 +11,8 @@ import { TicketAssetCard, type TicketAssetStatusTone } from '@/components/ui/tic
 import { TicketDemoOutcomes } from '@/components/ui/ticket-demo-outcomes'
 import { TicketEvidencePanel } from '@/components/ui/ticket-evidence-panel'
 import { ActionCTA } from '@/components/ui/action-cta'
+import { executeOnChainCheckIn } from '@/lib/solana/checkin-flow'
+import { config } from '@/lib/config'
 
 type TicketDetailApi = {
   id: string
@@ -19,6 +21,7 @@ type TicketDetailApi = {
   rawStatus?: string
   user_id?: string
   events: {
+    id?: string
     name: string
     venue: string | null
     date: string | null
@@ -47,10 +50,13 @@ export default function TicketDetailPage() {
   const router = useRouter()
   const params = useParams()
   const id = String(params.id)
-  const { publicKey } = useWallet()
+  const { publicKey, sendTransaction } = useWallet()
   const [ticketData, setTicketData] = useState<TicketDetailApi | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [checkInError, setCheckInError] = useState<string | null>(null)
+  const [latestTxSignature, setLatestTxSignature] = useState<string | null>(null)
+  const [latestAttestationId, setLatestAttestationId] = useState<string | null>(null)
 
   useEffect(() => {
     const loadTicket = async () => {
@@ -107,25 +113,60 @@ export default function TicketDetailPage() {
 
   const handleCheckIn = async () => {
     if (!ticketData || submitting || !canCheckIn) return
+    if (!publicKey) {
+      setCheckInError('Connect your wallet before running on-chain check-in.')
+      return
+    }
+
     setSubmitting(true)
+    setCheckInError(null)
     try {
+      const chainResult = await executeOnChainCheckIn({
+        ticketId: id,
+        eventId: ticketData.events?.id || id,
+        walletPublicKey: publicKey,
+        sendTransaction,
+      })
       const response = await fetch(`/api/tickets/${id}/check-in`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Idempotency-Key': `${id}-${Date.now()}`,
         },
+        body: JSON.stringify({
+          attestationId: chainResult.attestationId,
+          txSignature: chainResult.commitTxSignature,
+          checkInTxSignature: chainResult.checkInTxSignature,
+          checkinPda: chainResult.checkinPda,
+          attestationPda: chainResult.attestationPda,
+        }),
       })
+      if (!response.ok) {
+        const failed = await response.json().catch(() => ({}))
+        throw new Error(failed.error || 'Check-in API rejected the request.')
+      }
+
       if (response.ok) {
         const updated = await response.json()
         const nextRaw = updated?.data?.status || 'checked_in'
+        setLatestTxSignature(chainResult.commitTxSignature)
+        setLatestAttestationId(chainResult.attestationId)
         setTicketData((prev) => {
           if (!prev) return prev
           const status = mapStatus(nextRaw)
           return { ...prev, rawStatus: nextRaw, status }
         })
-        router.push(`/check-in/success?t=${id}`)
+        const params = new URLSearchParams({
+          t: id,
+          a: chainResult.attestationId,
+          tx: chainResult.commitTxSignature,
+          cktx: chainResult.checkInTxSignature,
+          cluster: chainResult.cluster,
+        })
+        router.push(`/check-in/success?${params.toString()}`)
       }
+    } catch (error) {
+      setCheckInError(error instanceof Error ? error.message : 'Unexpected check-in error')
     } finally {
       setSubmitting(false)
     }
@@ -229,14 +270,25 @@ export default function TicketDetailPage() {
 
               {canCheckIn && (
                 <p className="text-center text-[10px] text-muted-foreground">
-                  Confirms in-app + success screen with wallet, cluster, and honest tx placeholder.
+                  Requires real wallet signature on {config.solanaNetwork}. No fake hash fallback.
                 </p>
               )}
+              {checkInError ? (
+                <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-center text-xs text-destructive">
+                  {checkInError}
+                </p>
+              ) : null}
             </div>
 
             <TicketDemoOutcomes checkedIn={checkedIn && !isClosed} />
 
-            <TicketEvidencePanel walletShort={walletShort} ticketId={id} timelineHint={timelineHint} />
+            <TicketEvidencePanel
+              walletShort={walletShort}
+              ticketId={id}
+              txSignature={latestTxSignature}
+              attestationId={latestAttestationId}
+              timelineHint={timelineHint}
+            />
           </div>
         )}
       </div>

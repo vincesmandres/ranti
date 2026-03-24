@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react'
 import { AuthLayout } from '@/components/layouts/auth-layout'
 import { useDashboard } from '@/lib/hooks/use-dashboard'
 import { TicketDetailModal } from '@/components/ticket-detail-modal'
+import { executeOnChainCheckIn } from '@/lib/solana/checkin-flow'
 
 const rewardIcons = {
   'OG Collector': (
@@ -33,7 +34,7 @@ const rewardIcons = {
 
 export default function Dashboard() {
   const router = useRouter()
-  const { publicKey } = useWallet()
+  const { publicKey, sendTransaction } = useWallet()
   const { data: dashboardData, isLoading: loading, isError, error, refetch } = useDashboard()
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
 
@@ -283,18 +284,46 @@ export default function Dashboard() {
           ticket={{ ...selectedTicket, owner_wallet: publicKey?.toBase58() }}
           onClose={() => setSelectedTicket(null)}
           onActivate={async () => {
+            if (!publicKey) {
+              throw new Error('Connect wallet before check-in.')
+            }
+
+            const chainResult = await executeOnChainCheckIn({
+              ticketId: selectedTicket.id,
+              eventId: selectedTicket.event_id || selectedTicket.id,
+              walletPublicKey: publicKey,
+              sendTransaction,
+            })
+
             const response = await fetch(`/api/tickets/${selectedTicket.id}/check-in`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Idempotency-Key': `${selectedTicket.id}-${Date.now()}`,
               },
+              body: JSON.stringify({
+                attestationId: chainResult.attestationId,
+                txSignature: chainResult.commitTxSignature,
+                checkInTxSignature: chainResult.checkInTxSignature,
+                checkinPda: chainResult.checkinPda,
+                attestationPda: chainResult.attestationPda,
+              }),
             })
-            if (response.ok) {
-              await refetch()
-              setSelectedTicket(null)
-              router.push(`/check-in/success?t=${selectedTicket.id}`)
+            if (!response.ok) {
+              const failed = await response.json().catch(() => ({}))
+              throw new Error(failed.error || 'Unable to persist check-in state')
             }
+
+            await refetch()
+            setSelectedTicket(null)
+            const params = new URLSearchParams({
+              t: selectedTicket.id,
+              a: chainResult.attestationId,
+              tx: chainResult.commitTxSignature,
+              cktx: chainResult.checkInTxSignature,
+              cluster: chainResult.cluster,
+            })
+            router.push(`/check-in/success?${params.toString()}`)
           }}
         />
       )}

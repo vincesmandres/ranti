@@ -1,0 +1,21 @@
+[toolchain]
+anchor_version = "0.30.1"
+
+[features]
+seeds = true
+skip-lint = false
+
+[programs.devnet]
+ranti_checkin = "6L9fJY4qf2nB4V9YwVh3E2wQ5s7Y3K1mN8pR2tU4xZcQ"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "anchor test --skip-deploy"
+build = "anchor build"
+deploy = "anchor deploy --provider.cluster devnet"

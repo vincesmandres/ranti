@@ -62,7 +62,8 @@ function ProgressDots({ filled }: { filled: number }) {
  * Honest post-check-in story: what is real today vs staged for the protocol.
  */
 export function TicketDemoOutcomes({ checkedIn, className }: TicketDemoOutcomesProps) {
-  const filled = checkedIn ? 2 : 0
+  const onchainEnabled = config.features.onChainCheckIn
+  const filled = checkedIn ? (onchainEnabled ? 3 : 2) : 0
 
   return (
     <section
@@ -80,7 +81,7 @@ export function TicketDemoOutcomes({ checkedIn, className }: TicketDemoOutcomesP
         <div className="mt-3 max-w-xs">
           <div className="mb-1 flex justify-between text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
             <span>Demo depth</span>
-            <span>{checkedIn ? '2/3 live' : '0/3'}</span>
+            <span>{checkedIn ? (onchainEnabled ? '3/3 live' : '2/3 live') : '0/3'}</span>
           </div>
           <ProgressDots filled={filled} />
         </div>
@@ -107,11 +108,13 @@ export function TicketDemoOutcomes({ checkedIn, className }: TicketDemoOutcomesP
         <OutcomeRow
           title="Proof layer (on-chain path)"
           body={
-            config.features.onChainCheckIn
-              ? 'Program path enabled — tx hash will populate after wallet confirms.'
-              : 'Mock / roadmap: devnet program attestation + tx hash in this panel. Today: wallet + session + ticket state = operational truth.'
+            onchainEnabled
+              ? checkedIn
+                ? 'Live on devnet: wallet signs Anchor txs, server validates instructions/account ownership, and persists signatures.'
+                : 'Enabled on this environment: check-in will require wallet signature and produce a real tx hash.'
+              : 'Disabled by environment flag. Enable RANTI/NEXT_PUBLIC_RANTI_ENABLE_ONCHAIN_CHECKIN to require real tx proof.'
           }
-          state="mock"
+          state={onchainEnabled && checkedIn ? 'done' : onchainEnabled ? 'pending' : 'mock'}
         />
       </div>
     </section>

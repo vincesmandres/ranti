@@ -153,6 +153,11 @@ export default function TicketDetailPage() {
               <SolanaWalletStrip showHint variant="premium" className="w-full" />
             </div>
 
+            <div className="mb-4 flex items-center gap-2">
+              <img src="/ranti-logo.svg" alt="Ranti Protocol" className="w-5 h-5" />
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                Protocol Collection
+              </p>
             <div>
               <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Lifecycle timeline</p>
               <TicketLifecycleStrip status={raw} lang="en" />

@@ -134,6 +134,10 @@ function CheckInSuccessContent() {
           View my progress
         </ActionCTA>
 
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <img src="/ranti-logo.svg" alt="Ranti Protocol" className="w-4 h-4 opacity-60" />
+          <p className="text-[10px] text-muted-foreground">Protocol v1.0 • Solana Devnet</p>
+        </div>
         <div className="mt-4 flex flex-col gap-2 text-center">
           <Link href="/rewards" className="text-xs font-bold text-primary hover:underline">
             Rewards →

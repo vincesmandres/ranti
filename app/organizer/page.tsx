@@ -94,29 +94,33 @@ export default function OrganizerDashboard() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-          <p className="text-muted">Loading organizer data...</p>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted">Loading organizer data...</p>
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
-          >
-            Retry
-          </button>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-destructive mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
+            >
+              Retry
+            </button>
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
@@ -126,11 +130,10 @@ export default function OrganizerDashboard() {
       {/* Sidebar */}
       <aside className="w-64 border-r border-[#404A38]/10 flex flex-col fixed left-0 top-0 h-full bg-[#0E150C]">
         <div className="px-6 py-6">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/ranti-logo.svg" alt="Ranti" className="w-6 h-6" />
-            <span className="text-lg font-bold text-primary tracking-wider" style={{ fontFamily: 'var(--font-climate)' }}>RANTI</span>
+          <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
+            <img src="/ranti-logo.svg" alt="Ranti Protocol" className="w-10 h-10" />
           </Link>
-          <p className="text-[10px] text-muted uppercase tracking-widest mt-1">Protocol v2.0</p>
+          <p className="text-[10px] text-muted uppercase tracking-widest mt-2">Organizer Dashboard</p>
         </div>
 
         <nav className="flex-1 px-3 space-y-1">
@@ -143,10 +146,10 @@ export default function OrganizerDashboard() {
             <button
               key={item.id}
               onClick={() => setActiveNav(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all group ${
                 activeNav === item.id
-                  ? 'bg-[#1A2217] text-primary border-r-2 border-primary'
-                  : 'text-muted hover:text-foreground hover:bg-[#1A2217]/50'
+                  ? 'bg-primary/10 text-primary border-l-2 border-primary'
+                  : 'text-muted hover:text-foreground hover:bg-[#1A2217] hover:translate-x-1'
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -638,6 +641,10 @@ export default function OrganizerDashboard() {
             >
               DONE
             </button>
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <img src="/ranti-logo.svg" alt="Ranti Protocol" className="w-4 h-4 opacity-60" />
+              <p className="text-[10px] text-muted uppercase tracking-widest">Protocol v2.0.4 // Solana Ecosystem</p>
+            </div>
             <p className="text-[10px] text-muted text-center mt-4 uppercase tracking-widest">
               Ranti Protocol v2.0.4 // Solana {transactionData?.network || config.solanaNetwork}
             </p>

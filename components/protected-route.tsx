@@ -22,7 +22,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { connected, publicKey, connecting, disconnecting } = useWallet()
   const router = useRouter()
   const [isReady, setIsReady] = useState(false)
+  const [hasChecked, setHasChecked] = useState(false)
 
+  // Consider authenticated if user exists OR wallet is connected
+  const isAuthenticated = !!user || (connected && !!publicKey)
+  
+  // Still loading if auth is loading, wallet is connecting, or wallet hasn't settled
+  const isWalletLoading = connecting || disconnecting
+  const loading = authLoading || isWalletLoading
   const walletSettling = connecting || disconnecting
   const isAuthenticated = Boolean(user) || (connected && Boolean(publicKey))
   // Do not redirect while Supabase is loading unless wallet is already connected; never
@@ -34,19 +41,23 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <>{children}</>
   }
 
+  // Wait for wallet adapter to fully initialize (autoConnect needs time)
   useEffect(() => {
-    // Wait a tick for wallet state to initialize
     const timer = setTimeout(() => {
       setIsReady(true)
-    }, 100)
+    }, 500) // Increased to 500ms to allow autoConnect to complete
     return () => clearTimeout(timer)
   }, [])
 
+  // Only redirect after we're sure the wallet state has settled
   useEffect(() => {
-    if (isReady && !loading && !isAuthenticated) {
-      router.push('/')
+    if (isReady && !loading && !hasChecked) {
+      setHasChecked(true)
+      if (!isAuthenticated) {
+        router.push('/')
+      }
     }
-  }, [isAuthenticated, loading, router, isReady])
+  }, [isReady, loading, isAuthenticated, hasChecked, router])
 
   if (!isReady || loading) {
     return (

@@ -113,6 +113,26 @@ export default function Dashboard() {
               </div>
             </div>
 
+          {/* Rewards + On-chain Activity */}
+          <div className="flex flex-1 divide-x divide-border">
+            {/* Rewards */}
+            <div className="flex-1 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] font-bold tracking-widest text-foreground uppercase">Rewards</p>
+                <button className="text-[10px] font-bold text-primary uppercase tracking-wide hover:underline">
+                  View All
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[...(dashboardData?.rewards?.unlocked || []), ...(dashboardData?.rewards?.locked || [])].map((reward: any) => (
+                  <div
+                    key={reward.id}
+                    className={`rounded-xl border p-3 flex flex-col gap-2 cursor-pointer transition-all ${
+                      !reward.unlocked
+                        ? 'border-border opacity-40'
+                        : 'border-border hover:border-primary/40 hover:bg-primary/5 hover:scale-[1.02]'
+                    }`}
+                  >
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-3xl border border-[#2F372C] bg-[#1A2217] p-6">
                 <div className="mb-4 flex items-center justify-between">
@@ -144,6 +164,41 @@ export default function Dashboard() {
                 </div>
               </div>
 
+            {/* On-chain Activity */}
+            <div className="flex-1 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] font-bold tracking-widest text-foreground uppercase">On-chain Activity</p>
+                <button className="text-[10px] text-muted hover:text-primary transition-colors">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                  </svg>
+                </button>
+              </div>
+              <div className="space-y-3">
+                {dashboardData?.activity?.map((item: any, i: number) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 hover:translate-x-1 transition-all cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {item.type === 'check_in' && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8FF8C" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                      )}
+                      {item.type === 'mint' && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8FF8C" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                      )}
+                      {item.type === 'transfer' && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8FF8C" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-foreground">{item.title}</p>
+                      <p className="text-[10px] text-muted mt-0.5">{item.description}</p>
+                    </div>
+                  </div>
+                )) || (
+                  <p className="text-xs text-muted">No activity yet</p>
+                )}
               <div className="rounded-3xl border border-[#2F372C] bg-[#1A2217] p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <p className="text-xl font-bold text-foreground">Actividad</p>
@@ -192,6 +247,28 @@ export default function Dashboard() {
               </Link>
             </div>
 
+          {/* Ticket list */}
+          <div className="flex-1 px-6 space-y-4 pb-4 overflow-y-auto">
+            {dashboardData?.tickets && dashboardData.tickets.total > 0 ? (
+              [...(dashboardData.tickets.active || []), ...(dashboardData.tickets.checkedIn || []), ...(dashboardData.tickets.used || [])].map((ticket: any) => {
+                const ticketColors: { [key: string]: { bg: string; fg: string } } = {
+                  active: { bg: '#B8FF8C', fg: '#143800' },
+                  issued: { bg: '#B8FF8C', fg: '#143800' },
+                  checked_in: { bg: '#161D14', fg: '#B8FF8C' },
+                  used: { bg: '#161D14', fg: '#5E6659' },
+                }
+                const colors = ticketColors[ticket.status] || ticketColors.active
+                const eventDate = ticket.events?.date || new Date().toISOString()
+                const eventName = ticket.events?.name || 'Unknown Event'
+                const eventVenue = ticket.events?.venue || 'TBA'
+                return (
+                  <div
+                    key={ticket.id}
+                    onClick={() => setSelectedTicket({ ...ticket, event_name: eventName, event_date: eventDate, venue: eventVenue })}
+                    className={`block group relative cursor-pointer ${ticket.status === 'used' ? 'opacity-60 grayscale' : ''}`}
+                  >
+                    <div
+                      className="rounded-xl overflow-hidden transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/10"
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
               {dashboardData?.tickets && dashboardData.tickets.total > 0 ? (
                 allTickets.map((ticket: any) => {
@@ -272,6 +349,16 @@ export default function Dashboard() {
               )}
             </div>
 
+          {/* Redimir button */}
+          <div className="px-6 py-4 border-t border-border">
+            <Link
+              href="/marketplace"
+              className="flex items-center justify-center gap-2 w-full py-3 border border-border rounded-xl text-xs font-bold text-foreground hover:border-primary hover:text-primary hover:bg-primary/5 hover:scale-[1.01] transition-all uppercase tracking-wide group"
+            >
+              <span className="group-hover:rotate-90 transition-transform">+</span>
+              <span>Redimir Nuevo Ticket</span>
+            </Link>
+          </div>
             <div className="mt-4 border-t border-[#2F372C] pt-4">
               <Link
                 href="/marketplace"

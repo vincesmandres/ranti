@@ -1,6 +1,23 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+function normalizeEventRef(rawEvent: any) {
+  if (!rawEvent) return null
+  const eventDate = rawEvent.event_date ?? rawEvent.date ?? null
+  const imageUrl = rawEvent.image_url ?? rawEvent.cover_url ?? rawEvent.logo_url ?? null
+  return {
+    id: rawEvent.id,
+    name: rawEvent.name,
+    slug: rawEvent.slug ?? rawEvent.event_id ?? null,
+    venue: rawEvent.venue ?? null,
+    event_date: eventDate,
+    image_url: imageUrl,
+    // Legacy aliases kept for demo compatibility (Fase 2 transitional window).
+    date: eventDate,
+    cover_url: imageUrl,
+  }
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -8,6 +25,7 @@ export async function GET() {
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
+      console.warn('[api/dashboard] 401 unauthenticated')
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
@@ -22,7 +40,7 @@ export async function GET() {
       .single()
 
     if (profileError) {
-      console.error('Profile fetch error:', profileError)
+      console.warn('[api/dashboard] profile fetch warning:', profileError.message)
     }
 
     // Fetch active tickets
@@ -30,20 +48,13 @@ export async function GET() {
       .from('tickets')
       .select(`
         *,
-        events (
-          id,
-          name,
-          slug,
-          venue,
-          date,
-          cover_url
-        )
+        events (*)
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (ticketsError) {
-      console.error('Tickets fetch error:', ticketsError)
+      console.warn('[api/dashboard] tickets fetch warning:', ticketsError.message)
     }
 
     // Fetch ticket history summary (last 5)
@@ -56,7 +67,7 @@ export async function GET() {
       .limit(5)
 
     if (historyError) {
-      console.error('History fetch error:', historyError)
+      console.warn('[api/dashboard] history fetch warning:', historyError.message)
     }
 
     // Fetch rewards summary
@@ -67,7 +78,7 @@ export async function GET() {
       .order('unlocked_at', { ascending: false })
 
     if (rewardsError) {
-      console.error('Rewards fetch error:', rewardsError)
+      console.warn('[api/dashboard] rewards fetch warning:', rewardsError.message)
     }
 
     // Fetch recent activity
@@ -79,7 +90,7 @@ export async function GET() {
       .limit(10)
 
     if (activityError) {
-      console.error('Activity fetch error:', activityError)
+      console.warn('[api/dashboard] activity fetch warning:', activityError.message)
     }
 
     // Calculate participation score from rewards and check-ins
@@ -92,16 +103,23 @@ export async function GET() {
       ['issued', 'active', 'claimed'].includes(t.status)
     ).map(t => ({
       ...t,
+      events: normalizeEventRef(t.events),
       statusLabel: t.status === 'issued' ? 'ACTIVE' : t.status.toUpperCase(),
     }))
 
     const checkedInTickets = (tickets || []).filter(t => 
       t.status === 'checked_in'
-    )
+    ).map(t => ({
+      ...t,
+      events: normalizeEventRef(t.events),
+    }))
 
     const usedTickets = (tickets || []).filter(t => 
       ['used', 'expired', 'completed', 'rewarded'].includes(t.status)
-    )
+    ).map(t => ({
+      ...t,
+      events: normalizeEventRef(t.events),
+    }))
 
     // Rewards summary
     const unlockedRewards = (rewards || []).filter(r => r.unlocked)
@@ -143,7 +161,7 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('Dashboard data error:', error)
+    console.error('[api/dashboard] 500 internal error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

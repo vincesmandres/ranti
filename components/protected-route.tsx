@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useWallet } from '@solana/wallet-adapter-react'
 
@@ -14,34 +14,26 @@ const BYPASS_AUTH_FOR_TESTING = process.env.NEXT_PUBLIC_BYPASS_AUTH_FOR_TESTING 
 
 /**
  * Client-side gate for “app shell” routes. Middleware only refreshes Supabase cookies
- * and cannot see wallet state; this component is the single UI source of truth:
- * Supabase session OR connected Solana wallet (wallet-first demo).
+ * and cannot validate access by itself. In demo mode, wallet connection is accepted
+ * so the original onboarding flow (wallet/phone -> role -> dashboard) keeps working.
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading: authLoading } = useAuth()
   const { connected, publicKey, connecting, disconnecting } = useWallet()
   const router = useRouter()
+  const pathname = usePathname()
   const [isReady, setIsReady] = useState(false)
   const [hasChecked, setHasChecked] = useState(false)
 
-  // Consider authenticated if user exists OR wallet is connected
-  const isAuthenticated = !!user || (connected && !!publicKey)
-  
-  // Still loading if auth is loading, wallet is connecting, or wallet hasn't settled
-  const isWalletLoading = connecting || disconnecting
-  const loading = authLoading || isWalletLoading
-  const walletSettling = connecting || disconnecting
   const isAuthenticated = Boolean(user) || (connected && Boolean(publicKey))
-  // Do not redirect while Supabase is loading unless wallet is already connected; never
-  // redirect during wallet autoConnect/connect — avoids false “logged out” during demo.
-  const loading = (authLoading && !connected) || walletSettling
+  const loading = authLoading || connecting || disconnecting
 
   // Bypass auth for testing mode
   if (BYPASS_AUTH_FOR_TESTING) {
     return <>{children}</>
   }
 
-  // Wait for wallet adapter to fully initialize (autoConnect needs time)
+  // Give client auth hydration a brief settle window.
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsReady(true)
@@ -49,15 +41,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return () => clearTimeout(timer)
   }, [])
 
-  // Only redirect after we're sure the wallet state has settled
+  // Redirect only once after auth settles.
   useEffect(() => {
     if (isReady && !loading && !hasChecked) {
       setHasChecked(true)
       if (!isAuthenticated) {
-        router.push('/')
+        const roleHint = pathname?.startsWith('/organizer') ? 'organizer' : 'user'
+        const next = encodeURIComponent(pathname || '/dashboard')
+        const target = `/?modal=login&role=${roleHint}&next=${next}`
+        console.info('[auth] ProtectedRoute redirecting unauthenticated user to login flow:', target)
+        router.push(target)
       }
     }
-  }, [isReady, loading, isAuthenticated, hasChecked, router])
+  }, [isReady, loading, isAuthenticated, hasChecked, router, pathname])
 
   if (!isReady || loading) {
     return (

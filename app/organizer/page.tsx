@@ -107,17 +107,30 @@ export default function OrganizerDashboard() {
 
   // Error state
   if (error) {
+    const isAuthError =
+      error.toLowerCase().includes('autenticado') ||
+      error.toLowerCase().includes('unauthorized') ||
+      error.toLowerCase().includes('forbidden')
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
           <div className="text-center">
-            <p className="text-destructive mb-4">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
-            >
-              Retry
-            </button>
+            <p className="text-destructive mb-2">{isAuthError ? 'Sesion no valida para Organizer' : 'Organizer no disponible'}</p>
+            <p className="text-xs text-muted mb-4">{error}</p>
+            <div className="flex items-center justify-center gap-2">
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => window.location.assign('/')}
+                className="px-4 py-2 border border-[#404A38]/40 text-foreground rounded-lg"
+              >
+                Inicio
+              </button>
+            </div>
           </div>
         </div>
       </ProtectedRoute>
@@ -366,6 +379,11 @@ export default function OrganizerDashboard() {
                   className="bg-[#161D14] rounded-xl border border-[#404A38]/10 overflow-hidden hover:border-primary/30 transition-all cursor-pointer group"
                 >
                   <div className="h-28 bg-gradient-to-br from-[#1A2217] to-[#252C21] relative">
+                    <img
+                      src={event.image_url}
+                      alt={event.name}
+                      className="absolute inset-0 h-full w-full object-cover opacity-35"
+                    />
                     <span className={`absolute top-3 left-3 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${
                       event.status === 'ACTIVE' ? 'bg-primary text-[#143800]' : 'bg-[#404A38] text-muted'
                     }`}>

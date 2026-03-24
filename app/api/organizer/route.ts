@@ -1,12 +1,31 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+function normalizeOrganizerEvent(event: any) {
+  const eventDate = event?.event_date ?? event?.date ?? new Date().toISOString()
+  const imageUrl =
+    event?.image_url ?? event?.cover_url ?? event?.logo_url ?? '/placeholder.svg?height=120&width=200'
+  return {
+    id: event.id,
+    name: event.name,
+    status: new Date(eventDate) >= new Date() ? 'ACTIVE' : 'PAST',
+    event_date: eventDate,
+    venue: event.venue || 'TBD',
+    tickets_sold: event.tickets?.[0]?.count || 0,
+    max_capacity: event.max_capacity || 500,
+    image_url: imageUrl,
+    // Legacy alias for existing UI compatibility during migration.
+    image: imageUrl,
+  }
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      console.warn('[api/organizer] 401 unauthenticated')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -16,6 +35,13 @@ export async function GET() {
       .select('*')
       .eq('id', user.id)
       .single()
+
+    const role = String(profile?.role || '').toLowerCase()
+    const organizerRoles = new Set(['organizer', 'organizador'])
+    if (profile && role && !organizerRoles.has(role)) {
+      console.warn('[api/organizer] 403 role not authorized:', role)
+      return NextResponse.json({ error: 'Forbidden: organizer role required' }, { status: 403 })
+    }
 
     // Fetch events created by this organizer
     const { data: events } = await supabase
@@ -58,30 +84,24 @@ export async function GET() {
     }, []) || []
 
     // Format events for display
-    const formattedEvents = events?.map(event => ({
-      id: event.id,
-      name: event.name,
-      status: new Date(event.event_date) >= new Date() ? 'ACTIVE' : 'PAST',
-      event_date: event.event_date,
-      venue: event.venue,
-      tickets_sold: event.tickets?.[0]?.count || 0,
-      max_capacity: event.max_capacity || 500,
-      image: event.image_url || '/placeholder.svg?height=120&width=200'
-    })) || []
+    const formattedEvents = events?.map(normalizeOrganizerEvent) || []
 
     return NextResponse.json({
-      profile,
-      events: formattedEvents,
-      members: formattedMembers,
-      stats: {
-        totalEvents,
-        activeEvents,
-        totalTicketsSold,
-        totalMembers: formattedMembers.length
-      }
+      success: true,
+      data: {
+        profile,
+        events: formattedEvents,
+        members: formattedMembers,
+        stats: {
+          totalEvents,
+          activeEvents,
+          totalTicketsSold,
+          totalMembers: formattedMembers.length
+        }
+      },
     })
   } catch (error) {
-    console.error('Organizer API error:', error)
+    console.error('[api/organizer] 500 internal error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

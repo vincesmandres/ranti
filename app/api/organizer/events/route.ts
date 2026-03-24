@@ -9,7 +9,19 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      console.warn('[api/organizer/events] 401 unauthenticated')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    const role = String(profile?.role || '').toLowerCase()
+    if (profile && role && !new Set(['organizer', 'organizador']).has(role)) {
+      console.warn('[api/organizer/events] 403 role not authorized:', role)
+      return NextResponse.json({ error: 'Forbidden: organizer role required' }, { status: 403 })
     }
 
     const { data: events, error } = await supabase
@@ -19,6 +31,7 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
+      console.error('[api/organizer/events] 500 get events error:', error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -35,7 +48,19 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      console.warn('[api/organizer/events] 401 unauthenticated')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    const role = String(profile?.role || '').toLowerCase()
+    if (profile && role && !new Set(['organizer', 'organizador']).has(role)) {
+      console.warn('[api/organizer/events] 403 role not authorized:', role)
+      return NextResponse.json({ error: 'Forbidden: organizer role required' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -76,7 +101,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Create event error:', error)
+      console.error('[api/organizer/events] 500 create event error:', error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -102,7 +127,7 @@ export async function POST(request: NextRequest) {
       message: 'Event created successfully'
     })
   } catch (error) {
-    console.error('Create event error:', error)
+    console.error('[api/organizer/events] 500 internal error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

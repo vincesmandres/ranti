@@ -158,6 +158,7 @@ export default function TicketDetailPage() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
                 Protocol Collection
               </p>
+            </div>
             <div>
               <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Lifecycle timeline</p>
               <TicketLifecycleStrip status={raw} lang="en" />

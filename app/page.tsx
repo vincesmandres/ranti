@@ -25,6 +25,8 @@ export default function HomePage() {
   const [resendTimer, setResendTimer] = useState(0)
   const [showWalletMenu, setShowWalletMenu] = useState(false)
   const walletMenuRef = useRef<HTMLDivElement>(null)
+  const [forcedRole, setForcedRole] = useState<'user' | 'organizer' | null>(null)
+  const [nextPath, setNextPath] = useState<string | null>(null)
 
   const shortAddress = publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
@@ -47,6 +49,27 @@ export default function HomePage() {
     const interval = setInterval(() => setResendTimer(prev => prev - 1), 1000)
     return () => clearInterval(interval)
   }, [resendTimer])
+
+  // Deep-link auth intent, e.g. /?modal=login&role=organizer&next=%2Forganizer
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const modal = params.get('modal')
+    const role = params.get('role')
+    const next = params.get('next')
+    if (modal === 'login') {
+      setActiveModal('login')
+    }
+    if (role === 'organizer' || role === 'user') {
+      setForcedRole(role)
+    } else {
+      setForcedRole(null)
+    }
+    if (next) {
+      setNextPath(decodeURIComponent(next))
+    } else {
+      setNextPath(null)
+    }
+  }, [])
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,7 +111,11 @@ export default function HomePage() {
     setIsLoading(true)
     try {
       await new Promise(resolve => setTimeout(resolve, 1000))
-      setActiveModal('role')
+      if (forcedRole) {
+        handleRoleSelect(forcedRole)
+      } else {
+        setActiveModal('role')
+      }
     } catch {
       setOtpError('Error verificando OTP')
     } finally {
@@ -98,6 +125,10 @@ export default function HomePage() {
 
   const handleRoleSelect = (role: 'user' | 'organizer') => {
     setActiveModal('none')
+    if (nextPath) {
+      router.push(nextPath)
+      return
+    }
     router.push(role === 'user' ? '/dashboard' : '/organizer')
   }
 
@@ -129,13 +160,6 @@ export default function HomePage() {
     setPhoneError(null)
     setOtpSent(false)
   }, [])
-
-  const handleResendOtp = useCallback(() => {
-    if (resendTimer > 0) return
-    setResendTimer(60)
-    setOtpValues(['', '', '', '', '', ''])
-    setOtpError(null)
-  }, [resendTimer])
 
   return (
     <div className="min-h-screen bg-background">

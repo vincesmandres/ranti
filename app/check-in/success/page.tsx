@@ -70,7 +70,7 @@ function CheckInSuccessContent() {
               <span className="text-primary">{txSignature ? '✓' : '!'}</span>
               <span>
                 {txSignature
-                  ? 'Devnet memo transaction signed and confirmed.'
+                  ? 'Devnet Anchor transactions signed and confirmed.'
                   : 'No transaction signature provided in URL. Re-run check-in from ticket view.'}
               </span>
             </li>
@@ -87,7 +87,7 @@ function CheckInSuccessContent() {
 
         <div className="mb-6 space-y-4 rounded-2xl border border-primary/20 bg-gradient-to-b from-surface-container-low to-background p-5 shadow-lg shadow-black/25">
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Verified layer (demo)</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Verified layer (on-chain)</p>
             <p className="text-sm font-bold text-foreground">
               Session + API (Supabase){' '}
               <span className="text-xs font-normal text-muted-foreground">— wallet-bound profile</span>
@@ -113,7 +113,7 @@ function CheckInSuccessContent() {
           </div>
 
           <div className="rounded-lg border border-dashed border-border bg-background/50 p-3">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Program transaction</p>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Commit tx (program)</p>
             {txSignature ? (
               <p className="break-all font-mono text-xs text-primary">{txSignature}</p>
             ) : (
@@ -169,7 +169,7 @@ function CheckInSuccessContent() {
           ) : null}
         </div>
 
-        <p className="mt-8 text-center text-[10px] text-muted-foreground">Ranti · hackathon demo · {network}</p>
+        <p className="mt-8 text-center text-[10px] text-muted-foreground">Ranti · protocol check-in · {network}</p>
       </div>
     </main>
   )

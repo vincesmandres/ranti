@@ -6,7 +6,6 @@ import {
   assertValidPublicKey,
   verifyProgramTransaction,
 } from '@/lib/server/solana-attestation'
-import { assertValidPublicKey, verifyCheckInTransaction } from '@/lib/server/solana-attestation'
 
 type CommitBody = {
   attestationId?: string
@@ -37,10 +36,6 @@ export async function POST(request: NextRequest) {
           error:
             'attestationId, ticketId, txSignature, checkInTxSignature, attestationPda and checkinPda are required',
         },
-    const { attestationId, txSignature, ticketId } = (await request.json()) as CommitBody
-    if (!attestationId || !txSignature || !ticketId) {
-      return NextResponse.json(
-        { error: 'attestationId, ticketId and txSignature are required' },
         { status: 400 },
       )
     }
@@ -49,11 +44,6 @@ export async function POST(request: NextRequest) {
       supabase.from('profiles').select('wallet_address').eq('id', user.id).single(),
       supabase.from('tickets').select('id, event_id').eq('id', ticketId).eq('user_id', user.id).single(),
     ])
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('wallet_address')
-      .eq('id', user.id)
-      .single()
 
     if (profileError || !profile?.wallet_address) {
       return NextResponse.json(
@@ -98,19 +88,6 @@ export async function POST(request: NextRequest) {
         {
           error: verifyError instanceof Error ? verifyError.message : 'Unable to validate anchor transactions',
         },
-    const walletAddress = assertValidPublicKey(profile.wallet_address)
-
-    let verification
-    try {
-      verification = await verifyCheckInTransaction({
-        txSignature,
-        expectedSigner: walletAddress,
-        expectedTicketId: ticketId,
-        expectedAttestationId: attestationId,
-      })
-    } catch (verifyError) {
-      return NextResponse.json(
-        { error: verifyError instanceof Error ? verifyError.message : 'Unable to validate transaction' },
         { status: 409 },
       )
     }
@@ -120,7 +97,6 @@ export async function POST(request: NextRequest) {
       .select('id, payload')
       .eq('id', attestationId)
       .eq('ticket_id', ticket.id)
-      .eq('ticket_id', ticketId)
       .eq('user_id', user.id)
       .single()
 
@@ -149,11 +125,6 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', attestationId)
       .eq('ticket_id', ticket.id)
-          verification,
-        },
-      })
-      .eq('id', attestationId)
-      .eq('ticket_id', ticketId)
       .eq('user_id', user.id)
       .select('*')
       .single()

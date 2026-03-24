@@ -110,7 +110,7 @@ export function TicketDemoOutcomes({ checkedIn, className }: TicketDemoOutcomesP
           body={
             onchainEnabled
               ? checkedIn
-                ? 'Live on devnet: wallet signs memo tx, signature is verified server-side and persisted in attestation.'
+                ? 'Live on devnet: wallet signs Anchor txs, server validates instructions/account ownership, and persists signatures.'
                 : 'Enabled on this environment: check-in will require wallet signature and produce a real tx hash.'
               : 'Disabled by environment flag. Enable RANTI/NEXT_PUBLIC_RANTI_ENABLE_ONCHAIN_CHECKIN to require real tx proof.'
           }

@@ -66,6 +66,7 @@ npm run lint
 npm run anchor:build
 npm run anchor:test
 npm run anchor:deploy
+./scripts/deploy-devnet.sh
 ```
 
 También:
@@ -106,33 +107,6 @@ solana rent <ACCOUNT_DATA_BYTES>
 6. Confirma en DB que `attestations.tx_signature` quedó persistida y estado `committed_devnet`.
 
 ## Bloqueos explícitos
-## Solana Devnet check-in setup
-
-Create a `.env.local` with:
-
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-
-# Solana network consistency (frontend + backend)
-NEXT_PUBLIC_SOLANA_NETWORK=devnet
-NEXT_PUBLIC_SOLANA_RPC_URL=https://api.devnet.solana.com
-NEXT_PUBLIC_PROGRAM_ID=MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr
-
-# Runtime/feature flags
-NEXT_PUBLIC_APP_ENV=dev
-RANTI_APP_ENV=dev
-NEXT_PUBLIC_RANTI_ENABLE_ONCHAIN_CHECKIN=true
-RANTI_ENABLE_ONCHAIN_CHECKIN=true
-```
-
-When on-chain check-in is enabled, the app requires wallet signature and will fail explicitly if:
-- wallet is not linked to the authenticated profile,
-- attestation persistence fails, or
-- tx signature cannot be verified on the configured Solana cluster.
-
-## Learn More
 
 Si falta algo de infraestructura externa:
 - Sin `profiles.wallet_address` enlazada -> API responde `412`.

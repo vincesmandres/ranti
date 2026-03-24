@@ -69,7 +69,16 @@ export default function HomePage() {
     } else {
       setNextPath(null)
     }
+    // #region agent log
+    fetch('http://127.0.0.1:7670/ingest/ea11d0db-326d-430d-a16f-2c89927c1050',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'faf176'},body:JSON.stringify({sessionId:'faf176',runId:'initial',hypothesisId:'H3',location:'app/page.tsx:deep-link-effect',message:'home parsed login deep-link params',data:{modal,role,next,activeModalAfter:modal==='login'?'login':'none'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
   }, [])
+
+  useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7670/ingest/ea11d0db-326d-430d-a16f-2c89927c1050',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'faf176'},body:JSON.stringify({sessionId:'faf176',runId:'initial',hypothesisId:'H4',location:'app/page.tsx:wallet-state-effect',message:'home wallet state snapshot',data:{connected,hasPublicKey:Boolean(publicKey),activeModal,forcedRole,nextPath},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }, [connected, publicKey, activeModal, forcedRole, nextPath])
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,6 +120,10 @@ export default function HomePage() {
     setIsLoading(true)
     try {
       await new Promise(resolve => setTimeout(resolve, 1000))
+      sessionStorage.setItem('ranti_phone_verified_demo', 'true')
+      // #region agent log
+      fetch('http://127.0.0.1:7670/ingest/ea11d0db-326d-430d-a16f-2c89927c1050',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'faf176'},body:JSON.stringify({sessionId:'faf176',runId:'post-fix',hypothesisId:'H6',location:'app/page.tsx:handleOtpSubmit',message:'phone otp marked demo verified session',data:{forcedRole,nextPath},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (forcedRole) {
         handleRoleSelect(forcedRole)
       } else {
@@ -124,6 +137,9 @@ export default function HomePage() {
   }
 
   const handleRoleSelect = (role: 'user' | 'organizer') => {
+    // #region agent log
+    fetch('http://127.0.0.1:7670/ingest/ea11d0db-326d-430d-a16f-2c89927c1050',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'faf176'},body:JSON.stringify({sessionId:'faf176',runId:'initial',hypothesisId:'H3',location:'app/page.tsx:handleRoleSelect',message:'role selected from home modal',data:{role,nextPath,forcedRole,connected,hasPublicKey:Boolean(publicKey)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     setActiveModal('none')
     if (nextPath) {
       router.push(nextPath)
@@ -148,6 +164,7 @@ export default function HomePage() {
 
   const handleLogout = async () => {
     setShowWalletMenu(false)
+    sessionStorage.removeItem('ranti_phone_verified_demo')
     await disconnect()
     setActiveModal('none')
   }

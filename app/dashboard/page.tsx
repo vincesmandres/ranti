@@ -119,6 +119,18 @@ export default function Dashboard() {
               <div className="text-[80px] leading-none text-primary" style={{ fontFamily: 'var(--font-climate)' }}>
                 {dashboardData?.participation?.score?.toLocaleString() || '0'}
               </div>
+              <div className="mt-4 flex gap-1.5">
+                {Array.from({ length: 10 }).map((_, i) => {
+                  const progress = Number(dashboardData?.participation?.progress || 0)
+                  const filled = i < Math.max(1, Math.ceil(progress / 10))
+                  return (
+                    <div
+                      key={i}
+                      className={`h-2 flex-1 rounded-sm ${filled ? 'bg-primary' : 'bg-[#2F372C]'}`}
+                    />
+                  )
+                })}
+              </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
@@ -155,9 +167,24 @@ export default function Dashboard() {
                 <div className="space-y-3">
                   {dashboardData?.activity?.length ? (
                     dashboardData.activity.slice(0, 5).map((item: any, i: number) => (
-                      <div key={i} className="rounded-xl border border-[#2F372C] bg-[#131A11] p-3">
-                        <p className="text-xs font-bold text-foreground">{item.title}</p>
-                        <p className="text-[10px] text-muted">{item.description}</p>
+                      <div
+                        key={i}
+                        className="group rounded-xl border border-[#2F372C] bg-[#131A11] p-3 transition-colors hover:border-primary/40 hover:bg-[#1B2417]"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                              {item.type === 'check_in' && <span className="text-xs">✓</span>}
+                              {item.type === 'mint' && <span className="text-xs">✎</span>}
+                              {item.type !== 'check_in' && item.type !== 'mint' && <span className="text-xs">↔</span>}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-foreground">{item.title}</p>
+                              <p className="text-[10px] text-muted">{item.description}</p>
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted opacity-0 transition-opacity group-hover:opacity-100">↗</span>
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -200,19 +227,38 @@ export default function Dashboard() {
                       className={`relative w-full overflow-hidden rounded-xl text-left transition-transform hover:scale-[1.015] ${ticket.status === 'used' ? 'opacity-60 grayscale' : ''}`}
                       style={{ background: colors.bg }}
                     >
+                      <div className="pointer-events-none absolute -left-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-[#0E150C]" />
+                      <div className="pointer-events-none absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-[#0E150C]" />
                       <div className="p-4">
                         <div className="mb-3 flex items-start justify-between">
                           <span className="rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: colors.fg, borderColor: `${colors.fg}45` }}>
                             {ticket.statusLabel || ticket.status.toUpperCase()}
                           </span>
-                          <p className="text-[11px] font-bold uppercase" style={{ color: colors.fg }}>
-                            {new Date(eventDate).toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }).toUpperCase()}
-                          </p>
+                          <div className="text-right">
+                            <p className="text-[11px] font-bold uppercase" style={{ color: colors.fg }}>
+                              {new Date(eventDate).toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }).toUpperCase()}
+                            </p>
+                            <p className="text-lg font-black leading-none" style={{ color: colors.fg }}>
+                              {new Date(eventDate).getFullYear()}
+                            </p>
+                          </div>
                         </div>
                         <h3 className="text-xl uppercase leading-tight" style={{ fontFamily: 'var(--font-climate)', color: colors.fg }}>
                           {eventName}
                         </h3>
-                        <p className="mt-1 text-xs" style={{ color: colors.fg }}>{eventVenue}</p>
+                        <div className="mt-4 flex items-end justify-between border-t pt-3" style={{ borderColor: `${colors.fg}35` }}>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-widest opacity-70" style={{ color: colors.fg }}>
+                              Venue
+                            </p>
+                            <p className="text-xs font-bold" style={{ color: colors.fg }}>
+                              {eventVenue}
+                            </p>
+                          </div>
+                          <div className="flex h-9 w-9 items-center justify-center rounded bg-black/10">
+                            <span style={{ color: colors.fg }}>▦</span>
+                          </div>
+                        </div>
                       </div>
                     </button>
                   )

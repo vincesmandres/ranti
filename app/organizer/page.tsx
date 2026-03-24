@@ -55,6 +55,13 @@ export default function OrganizerDashboard() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Auto-fill signer with connected wallet address
+  useEffect(() => {
+    if (connected && publicKey) {
+      setWalletAddress(publicKey.toBase58())
+    }
+  }, [connected, publicKey])
+
   const handleLogout = async () => {
     setShowDropdown(false)
     await disconnect()

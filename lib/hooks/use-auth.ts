@@ -38,6 +38,10 @@ export function useAuth(): UseAuthReturn {
           error: err,
         } = await supabase.auth.getSession()
 
+        // #region agent log
+        fetch('http://127.0.0.1:7670/ingest/ea11d0db-326d-430d-a16f-2c89927c1050',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'faf176'},body:JSON.stringify({sessionId:'faf176',runId:'initial',hypothesisId:'H2',location:'lib/hooks/use-auth.ts:getSession',message:'supabase auth getSession result',data:{hasSession:Boolean(session),hasUser:Boolean(session?.user),userId:session?.user?.id||null,error:err?.message||null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+
         if (err) throw err
 
         if (session?.user) {
@@ -62,6 +66,9 @@ export function useAuth(): UseAuthReturn {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7670/ingest/ea11d0db-326d-430d-a16f-2c89927c1050',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'faf176'},body:JSON.stringify({sessionId:'faf176',runId:'initial',hypothesisId:'H2',location:'lib/hooks/use-auth.ts:onAuthStateChange',message:'supabase auth state changed',data:{event:_event,hasSession:Boolean(session),hasUser:Boolean(session?.user),userId:session?.user?.id||null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (session?.user) {
         setUser({
           id: session.user.id,

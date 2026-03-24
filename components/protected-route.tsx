@@ -24,8 +24,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const pathname = usePathname()
   const [isReady, setIsReady] = useState(false)
   const [hasChecked, setHasChecked] = useState(false)
+  const [demoPhoneVerified, setDemoPhoneVerified] = useState(false)
+  const isOrganizerRoute = pathname?.startsWith('/organizer')
 
-  const isAuthenticated = Boolean(user) || (connected && Boolean(publicKey))
+  const isAuthenticated =
+    Boolean(user) ||
+    (connected && Boolean(publicKey)) ||
+    (!isOrganizerRoute && demoPhoneVerified)
   const loading = authLoading || connecting || disconnecting
 
   // Bypass auth for testing mode
@@ -41,15 +46,30 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return () => clearTimeout(timer)
   }, [])
 
+  useEffect(() => {
+    const raw = sessionStorage.getItem('ranti_phone_verified_demo')
+    const value = raw === 'true'
+    setDemoPhoneVerified(value)
+    // #region agent log
+    fetch('http://127.0.0.1:7670/ingest/ea11d0db-326d-430d-a16f-2c89927c1050',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'faf176'},body:JSON.stringify({sessionId:'faf176',runId:'post-fix',hypothesisId:'H6',location:'components/protected-route.tsx:demo-phone-check',message:'protected route read demo phone verification flag',data:{pathname,raw,value},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }, [pathname])
+
   // Redirect only once after auth settles.
   useEffect(() => {
     if (isReady && !loading && !hasChecked) {
       setHasChecked(true)
+      // #region agent log
+      fetch('http://127.0.0.1:7670/ingest/ea11d0db-326d-430d-a16f-2c89927c1050',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'faf176'},body:JSON.stringify({sessionId:'faf176',runId:'initial',hypothesisId:'H1',location:'components/protected-route.tsx:guard-check',message:'protected route evaluated auth',data:{pathname,authLoading,connected,hasPublicKey:Boolean(publicKey),isReady,loading,isAuthenticated,hasChecked},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (!isAuthenticated) {
         const roleHint = pathname?.startsWith('/organizer') ? 'organizer' : 'user'
         const next = encodeURIComponent(pathname || '/dashboard')
         const target = `/?modal=login&role=${roleHint}&next=${next}`
         console.info('[auth] ProtectedRoute redirecting unauthenticated user to login flow:', target)
+        // #region agent log
+        fetch('http://127.0.0.1:7670/ingest/ea11d0db-326d-430d-a16f-2c89927c1050',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'faf176'},body:JSON.stringify({sessionId:'faf176',runId:'initial',hypothesisId:'H1',location:'components/protected-route.tsx:redirect',message:'protected route redirecting to home login flow',data:{pathname,target},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         router.push(target)
       }
     }

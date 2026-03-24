@@ -70,9 +70,10 @@ export default function CheckInSuccessPage() {
           Done
         </ActionCTA>
 
-        <p className="text-[10px] text-muted-foreground mt-6">
-          Ranti Protocol v1.0 • Solana Devnet
-        </p>
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <img src="/ranti-logo.svg" alt="Ranti Protocol" className="w-4 h-4 opacity-60" />
+          <p className="text-[10px] text-muted-foreground">Protocol v1.0 • Solana Devnet</p>
+        </div>
       </div>
     </main>
   )

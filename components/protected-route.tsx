@@ -47,12 +47,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     if (isReady && !loading && !hasChecked) {
       setHasChecked(true)
-      console.log('[v0] ProtectedRoute check:', { connected, publicKey: publicKey?.toBase58(), user: !!user, isAuthenticated })
       if (!isAuthenticated) {
         router.push('/')
       }
     }
-  }, [isReady, loading, isAuthenticated, hasChecked, router, connected, publicKey, user])
+  }, [isReady, loading, isAuthenticated, hasChecked, router])
 
   if (!isReady || loading) {
     return (

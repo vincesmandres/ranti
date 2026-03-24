@@ -170,10 +170,10 @@ export default function Dashboard() {
                 {[...(dashboardData?.rewards?.unlocked || []), ...(dashboardData?.rewards?.locked || [])].map((reward: any) => (
                   <div
                     key={reward.id}
-                    className={`rounded-xl border p-3 flex flex-col gap-2 ${
+                    className={`rounded-xl border p-3 flex flex-col gap-2 cursor-pointer transition-all ${
                       !reward.unlocked
                         ? 'border-border opacity-40'
-                        : 'border-border hover:border-primary/40 transition-colors'
+                        : 'border-border hover:border-primary/40 hover:bg-primary/5 hover:scale-[1.02]'
                     }`}
                   >
                     <div
@@ -209,7 +209,7 @@ export default function Dashboard() {
                 {dashboardData?.activity?.map((item: any, i: number) => (
                   <div
                     key={i}
-                    className="flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 transition-colors"
+                    className="flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 hover:translate-x-1 transition-all cursor-pointer"
                   >
                     <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                       {item.type === 'check_in' && (
@@ -274,7 +274,7 @@ export default function Dashboard() {
                     className={`block group relative cursor-pointer ${ticket.status === 'used' ? 'opacity-60 grayscale' : ''}`}
                   >
                     <div
-                      className="rounded-xl overflow-hidden transition-all hover:scale-[1.02]"
+                      className="rounded-xl overflow-hidden transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/10"
                       style={{ background: colors.bg }}
                     >
                       <div className="p-6">
@@ -351,9 +351,9 @@ export default function Dashboard() {
           <div className="px-6 py-4 border-t border-border">
             <Link
               href="/marketplace"
-              className="flex items-center justify-center gap-2 w-full py-3 border border-border rounded-xl text-xs font-bold text-foreground hover:border-primary hover:text-primary transition-all uppercase tracking-wide"
+              className="flex items-center justify-center gap-2 w-full py-3 border border-border rounded-xl text-xs font-bold text-foreground hover:border-primary hover:text-primary hover:bg-primary/5 hover:scale-[1.01] transition-all uppercase tracking-wide group"
             >
-              <span>+</span>
+              <span className="group-hover:rotate-90 transition-transform">+</span>
               <span>Redimir Nuevo Ticket</span>
             </Link>
           </div>

@@ -49,28 +49,24 @@ export default function DashboardHeader() {
 
   return (
     <header className="border-b border-border px-6 h-14 flex items-center justify-between bg-background sticky top-0 z-40">
-      {/* Logo + Brand */}
-      <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
-        <img src="/ranti-logo.svg" alt="Ranti" className="w-6 h-6" />
-        <span className="text-sm font-bold text-primary tracking-widest" style={{ fontFamily: 'var(--font-climate)' }}>RANTI</span>
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:scale-105 transition-transform">
+        <img src="/ranti-logo.svg" alt="Ranti Protocol" className="w-8 h-8" />
       </Link>
 
       {/* Nav - centered */}
-      <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-8">
+      <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`text-xs font-bold tracking-widest transition-colors relative pb-1 ${
+            className={`text-xs font-bold tracking-widest transition-all relative px-4 py-2 rounded-lg ${
               isActive(item.href)
-                ? 'text-foreground'
-                : 'text-muted hover:text-foreground'
+                ? 'text-primary bg-primary/10'
+                : 'text-muted hover:text-foreground hover:bg-[#1A2217]'
             }`}
           >
             {item.label}
-            {isActive(item.href) && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
-            )}
           </Link>
         ))}
       </nav>

@@ -113,11 +113,11 @@ export default function TicketDetailPage() {
               </button>
             </div>
 
-            <div className="mb-4">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
-                Collection by
+            <div className="mb-4 flex items-center gap-2">
+              <img src="/ranti-logo.svg" alt="Ranti Protocol" className="w-5 h-5" />
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                Protocol Collection
               </p>
-              <p className="text-sm font-bold text-secondary">RANTI PROTOCOL</p>
             </div>
 
             <h1 className="text-3xl font-bold text-primary mb-4" style={{ fontFamily: 'var(--font-climate)' }}>

@@ -132,16 +132,15 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border px-6 h-14 flex items-center justify-between bg-background sticky top-0 z-40">
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <img src="/ranti-logo.svg" alt="Ranti" className="w-6 h-6" />
-          <span className="text-sm font-bold text-primary tracking-widest" style={{ fontFamily: 'var(--font-climate)' }}>RANTI</span>
+        <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform">
+          <img src="/ranti-logo.svg" alt="Ranti Protocol" className="w-8 h-8" />
         </Link>
 
-        <nav className="flex items-center gap-6 text-xs">
-          <Link href="/marketplace" className="text-primary border-b-2 border-primary pb-1 uppercase tracking-widest font-bold hover:opacity-80 transition-opacity">
+        <nav className="flex items-center gap-2 text-xs">
+          <Link href="/marketplace" className="text-primary bg-primary/10 px-4 py-2 rounded-lg uppercase tracking-widest font-bold hover:bg-primary/20 transition-all">
             Marketplace
           </Link>
-          <Link href="/eventos" className="text-muted hover:text-primary transition-colors uppercase tracking-widest font-bold">
+          <Link href="/eventos" className="text-muted hover:text-foreground hover:bg-[#1A2217] px-4 py-2 rounded-lg uppercase tracking-widest font-bold transition-all">
             Events
           </Link>
         </nav>

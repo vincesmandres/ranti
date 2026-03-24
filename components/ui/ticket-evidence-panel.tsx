@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils'
 interface TicketEvidencePanelProps {
   walletShort: string | null
   ticketId: string
+  txSignature?: string | null
+  attestationId?: string | null
   /** Human timeline line for demo */
   timelineHint: string
   className?: string
@@ -15,12 +17,21 @@ interface TicketEvidencePanelProps {
 /**
  * Verifiable surface for the demo: wallet, cluster, program placeholder, tx stub, link to history.
  */
-export function TicketEvidencePanel({ walletShort, ticketId, timelineHint, className }: TicketEvidencePanelProps) {
+export function TicketEvidencePanel({
+  walletShort,
+  ticketId,
+  txSignature,
+  attestationId,
+  timelineHint,
+  className,
+}: TicketEvidencePanelProps) {
   const network = config.solanaNetwork
   const programId = config.programId || '— not set (NEXT_PUBLIC_PROGRAM_ID)'
-  const txPlaceholder = config.features.onChainCheckIn
-    ? 'Awaiting signature — hash will appear here.'
-    : 'No program tx in this build. Verify wallet + cluster below; cross-check ticket status via API.'
+  const txSummary = txSignature
+    ? txSignature
+    : config.features.onChainCheckIn
+      ? 'Pending signature from wallet to generate on-chain proof.'
+      : 'On-chain check-in disabled by environment feature flag.'
 
   const solscan =
     network === 'mainnet-beta' ? 'https://solscan.io' : 'https://solscan.io/?cluster=devnet'
@@ -56,8 +67,14 @@ export function TicketEvidencePanel({ walletShort, ticketId, timelineHint, class
         </div>
         <div className="rounded-xl border border-dashed border-primary/35 bg-primary/[0.06] p-3.5">
           <dt className="text-[10px] font-bold uppercase tracking-widest text-primary">Transaction</dt>
-          <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{txPlaceholder}</dd>
+          <dd className="mt-1 break-all font-mono text-xs leading-relaxed text-muted-foreground">{txSummary}</dd>
         </div>
+        {attestationId ? (
+          <div className="rounded-xl border border-border/70 bg-background/45 p-3.5">
+            <dt className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Attestation id</dt>
+            <dd className="mt-1 break-all font-mono text-xs text-foreground">{attestationId}</dd>
+          </div>
+        ) : null}
         <div className="rounded-xl border border-border/70 bg-background/45 p-3.5">
           <dt className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Timeline</dt>
           <dd className="mt-1 text-xs text-foreground">{timelineHint}</dd>

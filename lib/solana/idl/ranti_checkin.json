@@ -1,0 +1,161 @@
+{
+  "address": "6L9fJY4qf2nB4V9YwVh3E2wQ5s7Y3K1mN8pR2tU4xZcQ",
+  "metadata": {
+    "name": "ranti_checkin",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "initializeConfig",
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "authority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "checkIn",
+      "discriminator": [
+        209,
+        253,
+        4,
+        217,
+        250,
+        241,
+        207,
+        50
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "checkinRecord",
+          "writable": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticketRef",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "eventRef",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "checkedInAt",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "commitAttestation",
+      "discriminator": [
+        189,
+        31,
+        48,
+        199,
+        210,
+        173,
+        251,
+        43
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "checkinRecord",
+          "writable": true
+        },
+        {
+          "name": "attestationRecord",
+          "writable": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "ticketRef",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "eventRef",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "checkinTxSignature",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "committedAt",
+          "type": "i64"
+        }
+      ]
+    }
+  ]
+}

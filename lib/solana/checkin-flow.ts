@@ -1,8 +1,13 @@
-import { Connection, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js'
+import { Connection, PublicKey, Transaction } from '@solana/web3.js'
 import type { SendTransactionOptions } from '@solana/wallet-adapter-base'
 import { getSolanaCluster, getSolanaRpcUrl, isOnChainCheckInEnabled } from '@/lib/solana/network'
-
-const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr')
+import {
+  buildCheckInInstruction,
+  buildCommitAttestationInstruction,
+  deriveAttestationPda,
+  deriveCheckinPda,
+  getRantiProgramId,
+} from '@/lib/solana/anchor-client'
 
 type PrepareResponse = {
   success: boolean
@@ -27,20 +32,11 @@ type CommitResponse = {
 
 export type OnChainCheckInResult = {
   attestationId: string
-  txSignature: string
+  checkInTxSignature: string
+  commitTxSignature: string
+  checkinPda: string
+  attestationPda: string
   cluster: string
-}
-
-function memoPayload(attestationId: string, ticketId: string, wallet: string) {
-  return JSON.stringify({
-    protocol: 'ranti',
-    action: 'check_in',
-    cluster: getSolanaCluster(),
-    ticketId,
-    attestationId,
-    wallet,
-    ts: new Date().toISOString(),
-  })
 }
 
 async function parseJson<T>(response: Response): Promise<T> {
@@ -51,8 +47,25 @@ async function parseJson<T>(response: Response): Promise<T> {
   }
 }
 
+async function confirmSignature(connection: Connection, signature: string) {
+  const latest = await connection.getLatestBlockhash('confirmed')
+  const confirmation = await connection.confirmTransaction(
+    {
+      signature,
+      blockhash: latest.blockhash,
+      lastValidBlockHeight: latest.lastValidBlockHeight,
+    },
+    'confirmed',
+  )
+
+  if (confirmation.value.err) {
+    throw new Error(`Transaction failed on devnet: ${JSON.stringify(confirmation.value.err)}`)
+  }
+}
+
 export async function executeOnChainCheckIn(params: {
   ticketId: string
+  eventId: string
   walletPublicKey: PublicKey
   sendTransaction: (
     transaction: Transaction,
@@ -70,7 +83,7 @@ export async function executeOnChainCheckIn(params: {
     body: JSON.stringify({
       ticketId: params.ticketId,
       participationEvent: 'check_in',
-      referenceId: params.ticketId,
+      referenceId: params.eventId,
     }),
   })
   const prepare = await parseJson<PrepareResponse>(prepareResponse)
@@ -81,39 +94,46 @@ export async function executeOnChainCheckIn(params: {
 
   const attestationId = prepare.data.attestation.id
   const connection = new Connection(getSolanaRpcUrl(), 'confirmed')
-  const latestBlockhash = await connection.getLatestBlockhash('confirmed')
+  const programId = getRantiProgramId()
 
-  const memo = memoPayload(attestationId, params.ticketId, params.walletPublicKey.toBase58())
-  const instruction = new TransactionInstruction({
-    keys: [{ pubkey: params.walletPublicKey, isSigner: true, isWritable: false }],
-    programId: MEMO_PROGRAM_ID,
-    data: Buffer.from(memo, 'utf8'),
+  const checkedInAtUnix = Math.floor(Date.now() / 1000)
+  const checkInIx = buildCheckInInstruction({
+    user: params.walletPublicKey,
+    ticketId: params.ticketId,
+    eventId: params.eventId,
+    checkedInAtUnix,
+    programId,
   })
 
-  const tx = new Transaction({
-    feePayer: params.walletPublicKey,
-    blockhash: latestBlockhash.blockhash,
-    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-  }).add(instruction)
+  const checkInTx = new Transaction().add(checkInIx.instruction)
+  checkInTx.feePayer = params.walletPublicKey
 
-  const txSignature = await params.sendTransaction(tx, connection, {
+  const checkInTxSignature = await params.sendTransaction(checkInTx, connection, {
     skipPreflight: false,
     preflightCommitment: 'confirmed',
     maxRetries: 3,
   })
+  await confirmSignature(connection, checkInTxSignature)
 
-  const confirmation = await connection.confirmTransaction(
-    {
-      signature: txSignature,
-      blockhash: latestBlockhash.blockhash,
-      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-    },
-    'confirmed',
-  )
+  const committedAtUnix = Math.floor(Date.now() / 1000)
+  const commitIx = buildCommitAttestationInstruction({
+    user: params.walletPublicKey,
+    ticketId: params.ticketId,
+    eventId: params.eventId,
+    checkinTxSignature: checkInTxSignature,
+    committedAtUnix,
+    programId,
+  })
 
-  if (confirmation.value.err) {
-    throw new Error('Transaction confirmed with error on Solana Devnet.')
-  }
+  const commitTx = new Transaction().add(commitIx.instruction)
+  commitTx.feePayer = params.walletPublicKey
+
+  const commitTxSignature = await params.sendTransaction(commitTx, connection, {
+    skipPreflight: false,
+    preflightCommitment: 'confirmed',
+    maxRetries: 3,
+  })
+  await confirmSignature(connection, commitTxSignature)
 
   const commitResponse = await fetch('/api/attestations/commit', {
     method: 'POST',
@@ -121,7 +141,10 @@ export async function executeOnChainCheckIn(params: {
     body: JSON.stringify({
       attestationId,
       ticketId: params.ticketId,
-      txSignature,
+      txSignature: commitTxSignature,
+      checkInTxSignature,
+      attestationPda: commitIx.attestationRecord.toBase58(),
+      checkinPda: commitIx.checkinRecord.toBase58(),
     }),
   })
   const commit = await parseJson<CommitResponse>(commitResponse)
@@ -130,9 +153,15 @@ export async function executeOnChainCheckIn(params: {
     throw new Error(commit.error || 'Failed to commit attestation with tx signature.')
   }
 
+  const [checkinPda] = deriveCheckinPda(params.walletPublicKey, params.ticketId, programId)
+  const [attestationPda] = deriveAttestationPda(params.walletPublicKey, params.ticketId, programId)
+
   return {
     attestationId,
-    txSignature,
+    checkInTxSignature,
+    commitTxSignature,
+    checkinPda: checkinPda.toBase58(),
+    attestationPda: attestationPda.toBase58(),
     cluster: getSolanaCluster(),
   }
 }

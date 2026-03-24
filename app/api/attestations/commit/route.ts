@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/server/auth'
 import { getSolanaCluster, isOnChainCheckInEnabled } from '@/lib/solana/network'
+import {
+  assertAccountOwnedByProgram,
+  assertValidPublicKey,
+  verifyProgramTransaction,
+} from '@/lib/server/solana-attestation'
 import { assertValidPublicKey, verifyCheckInTransaction } from '@/lib/server/solana-attestation'
 
 type CommitBody = {
   attestationId?: string
   ticketId?: string
   txSignature?: string
+  checkInTxSignature?: string
+  attestationPda?: string
+  checkinPda?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -21,6 +29,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const body = (await request.json()) as CommitBody
+    const { attestationId, txSignature, ticketId, checkInTxSignature, attestationPda, checkinPda } = body
+    if (!attestationId || !txSignature || !ticketId || !checkInTxSignature || !attestationPda || !checkinPda) {
+      return NextResponse.json(
+        {
+          error:
+            'attestationId, ticketId, txSignature, checkInTxSignature, attestationPda and checkinPda are required',
+        },
     const { attestationId, txSignature, ticketId } = (await request.json()) as CommitBody
     if (!attestationId || !txSignature || !ticketId) {
       return NextResponse.json(
@@ -29,6 +45,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const [{ data: profile, error: profileError }, { data: ticket, error: ticketError }] = await Promise.all([
+      supabase.from('profiles').select('wallet_address').eq('id', user.id).single(),
+      supabase.from('tickets').select('id, event_id').eq('id', ticketId).eq('user_id', user.id).single(),
+    ])
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('wallet_address')
@@ -42,6 +62,42 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (ticketError || !ticket) {
+      return NextResponse.json({ error: 'Ticket not found for user' }, { status: 404 })
+    }
+
+    const walletAddress = assertValidPublicKey(profile.wallet_address)
+    const eventRef = String(ticket.event_id || ticket.id)
+
+    let checkInVerification
+    let commitVerification
+    let checkinAccount
+    let attestationAccount
+    try {
+      ;[checkInVerification, commitVerification, checkinAccount, attestationAccount] = await Promise.all([
+        verifyProgramTransaction({
+          txSignature: checkInTxSignature,
+          expectedSigner: walletAddress,
+          expectedTicketId: ticket.id,
+          expectedEventId: eventRef,
+          instructionType: 'check_in',
+        }),
+        verifyProgramTransaction({
+          txSignature,
+          expectedSigner: walletAddress,
+          expectedTicketId: ticket.id,
+          expectedEventId: eventRef,
+          instructionType: 'commit_attestation',
+          expectedCheckInTxSignature: checkInTxSignature,
+        }),
+        assertAccountOwnedByProgram(checkinPda),
+        assertAccountOwnedByProgram(attestationPda),
+      ])
+    } catch (verifyError) {
+      return NextResponse.json(
+        {
+          error: verifyError instanceof Error ? verifyError.message : 'Unable to validate anchor transactions',
+        },
     const walletAddress = assertValidPublicKey(profile.wallet_address)
 
     let verification
@@ -63,6 +119,7 @@ export async function POST(request: NextRequest) {
       .from('attestations')
       .select('id, payload')
       .eq('id', attestationId)
+      .eq('ticket_id', ticket.id)
       .eq('ticket_id', ticketId)
       .eq('user_id', user.id)
       .single()
@@ -79,6 +136,19 @@ export async function POST(request: NextRequest) {
         committed_at: new Date().toISOString(),
         payload: {
           ...(typeof existing.payload === 'object' && existing.payload ? existing.payload : {}),
+          checkin_tx_signature: checkInTxSignature,
+          checkin_pda: checkinPda,
+          attestation_pda: attestationPda,
+          verification: {
+            checkInVerification,
+            commitVerification,
+            checkinAccount,
+            attestationAccount,
+          },
+        },
+      })
+      .eq('id', attestationId)
+      .eq('ticket_id', ticket.id)
           verification,
         },
       })

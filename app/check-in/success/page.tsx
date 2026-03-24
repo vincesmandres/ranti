@@ -122,6 +122,12 @@ function CheckInSuccessContent() {
               </p>
             )}
           </div>
+          {checkInTxSignature ? (
+            <div className="rounded-lg border border-dashed border-border bg-background/50 p-3">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Check-in tx (program)</p>
+              <p className="break-all font-mono text-xs text-primary">{checkInTxSignature}</p>
+            </div>
+          ) : null}
 
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-xs font-mono text-foreground">Solscan · {network}</p>

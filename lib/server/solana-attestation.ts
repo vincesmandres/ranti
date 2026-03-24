@@ -1,46 +1,69 @@
+import bs58 from 'bs58'
 import { Connection, PublicKey } from '@solana/web3.js'
 import { getSolanaCluster, getSolanaRpcUrl } from '@/lib/solana/network'
+import { getRantiProgramId } from '@/lib/solana/anchor-client'
 
-const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
+const CHECK_IN_DISCRIMINATOR = Buffer.from([209, 253, 4, 217, 250, 241, 207, 50])
+const COMMIT_ATTESTATION_DISCRIMINATOR = Buffer.from([189, 31, 48, 199, 210, 173, 251, 43])
 
-export type CheckInTxVerificationInput = {
+export type VerifyProgramTxInput = {
   txSignature: string
   expectedSigner: string
   expectedTicketId: string
-  expectedAttestationId: string
+  expectedEventId: string
+  instructionType: 'check_in' | 'commit_attestation'
+  expectedCheckInTxSignature?: string
 }
 
-export type CheckInTxVerificationResult = {
+export type ProgramTxVerificationResult = {
   slot: number
   cluster: string
+  programId: string
   signerMatched: boolean
-  memoMatched: boolean
-  memo: string | null
+  instructionMatched: boolean
 }
 
-function tryParseMemo(raw: unknown): string | null {
-  if (typeof raw === 'string') return raw
-  if (!raw || typeof raw !== 'object') return null
-
-  const parsedValue = (raw as Record<string, unknown>).parsed
-  if (typeof parsedValue === 'string') return parsedValue
-
-  const dataValue = (raw as Record<string, unknown>).data
-  if (typeof dataValue === 'string') return dataValue
-
-  return null
+function fixed32(value: string): Buffer {
+  const input = Buffer.from(value.trim(), 'utf8')
+  const out = Buffer.alloc(32)
+  input.subarray(0, 32).copy(out)
+  return out
 }
 
-function memoContainsExpectations(memo: string | null, expectedTicketId: string, expectedAttestationId: string) {
-  if (!memo) return false
-  return memo.includes(expectedTicketId) && memo.includes(expectedAttestationId)
+function fixed64Signature(signature: string): Buffer {
+  const decoded = bs58.decode(signature)
+  if (decoded.length !== 64) {
+    throw new Error('Invalid check-in tx signature bytes')
+  }
+  return Buffer.from(decoded)
 }
 
-export async function verifyCheckInTransaction(
-  input: CheckInTxVerificationInput,
-): Promise<CheckInTxVerificationResult> {
+function expectedPrefix(input: VerifyProgramTxInput): Buffer {
+  const ticketRef = fixed32(input.expectedTicketId)
+  const eventRef = fixed32(input.expectedEventId)
+
+  if (input.instructionType === 'check_in') {
+    return Buffer.concat([CHECK_IN_DISCRIMINATOR, ticketRef, eventRef])
+  }
+
+  if (!input.expectedCheckInTxSignature) {
+    throw new Error('commit_attestation verification requires check-in tx signature')
+  }
+
+  return Buffer.concat([
+    COMMIT_ATTESTATION_DISCRIMINATOR,
+    ticketRef,
+    eventRef,
+    fixed64Signature(input.expectedCheckInTxSignature),
+  ])
+}
+
+export async function verifyProgramTransaction(
+  input: VerifyProgramTxInput,
+): Promise<ProgramTxVerificationResult> {
   const connection = new Connection(getSolanaRpcUrl(), 'confirmed')
   const cluster = getSolanaCluster()
+  const programId = getRantiProgramId().toBase58()
 
   const parsedTx = await connection.getParsedTransaction(input.txSignature, {
     commitment: 'confirmed',

@@ -21,6 +21,7 @@ type TicketDetailApi = {
   rawStatus?: string
   user_id?: string
   events: {
+    id?: string
     name: string
     venue: string | null
     date: string | null

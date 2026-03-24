@@ -9,6 +9,9 @@ import { isOnChainCheckInEnabled } from '@/lib/solana/network'
 type CheckInBody = {
   attestationId?: string
   txSignature?: string
+  checkInTxSignature?: string
+  checkinPda?: string
+  attestationPda?: string
 }
 
 export async function POST(

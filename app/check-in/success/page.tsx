@@ -8,10 +8,14 @@ import { ActionCTA } from '@/components/ui/action-cta'
 import { SolanaWalletStrip } from '@/components/solana-wallet-strip'
 import { TicketLifecycleStrip } from '@/components/ui/ticket-lifecycle-strip'
 import { config } from '@/lib/config'
+import { getSolscanTxUrl } from '@/lib/solana/network'
 
 function CheckInSuccessContent() {
   const searchParams = useSearchParams()
   const ticketId = searchParams.get('t')
+  const txSignature = searchParams.get('tx')
+  const checkInTxSignature = searchParams.get('cktx')
+  const attestationIdParam = searchParams.get('a')
   const { publicKey } = useWallet()
   const network = config.solanaNetwork
 
@@ -19,12 +23,8 @@ function CheckInSuccessContent() {
     ? `${publicKey.toBase58().slice(0, 6)}…${publicKey.toBase58().slice(-4)}`
     : 'Wallet not connected in this view'
 
-  const attestationId =
-    ticketId && publicKey
-      ? `ranti-${ticketId.slice(0, 8)}-${publicKey.toBase58().slice(0, 4)}`
-      : ticketId
-        ? `ranti-${ticketId.slice(0, 8)}-session`
-        : 'ranti-demo-session'
+  const attestationId = attestationIdParam || 'missing-attestation-id'
+  const solscanTxUrl = txSignature ? getSolscanTxUrl(txSignature, network) : null
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background">
@@ -61,15 +61,19 @@ function CheckInSuccessContent() {
           <ul className="space-y-2 rounded-xl border border-border/80 bg-surface-container-low/80 p-4 text-left text-[11px] text-muted-foreground">
             <li className="flex gap-2">
               <span className="text-primary">✓</span>
-              <span>Attendance recorded (API + session — this is the operational truth in this build).</span>
+              <span>Attendance recorded in API/Supabase and linked to attestation id.</span>
             </li>
             <li className="flex gap-2">
               <span className="text-primary">✓</span>
               <span>Wallet-linked identity {publicKey ? 'is' : 'can be'} shown in verification below.</span>
             </li>
             <li className="flex gap-2">
-              <span className="text-primary">◇</span>
-              <span>On-chain program proof: honest placeholder until devnet program tx is wired.</span>
+              <span className="text-primary">{txSignature ? '✓' : '!'}</span>
+              <span>
+                {txSignature
+                  ? 'Devnet Anchor transactions signed and confirmed.'
+                  : 'No transaction signature provided in URL. Re-run check-in from ticket view.'}
+              </span>
             </li>
           </ul>
         </div>
@@ -84,7 +88,7 @@ function CheckInSuccessContent() {
 
         <div className="mb-6 space-y-4 rounded-2xl border border-primary/20 bg-gradient-to-b from-surface-container-low to-background p-5 shadow-lg shadow-black/25">
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Verified layer (demo)</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Verified layer (on-chain)</p>
             <p className="text-sm font-bold text-foreground">
               Session + API (Supabase){' '}
               <span className="text-xs font-normal text-muted-foreground">— wallet-bound profile</span>
@@ -110,23 +114,37 @@ function CheckInSuccessContent() {
           </div>
 
           <div className="rounded-lg border border-dashed border-border bg-background/50 p-3">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Program transaction</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              {config.features.onChainCheckIn
-                ? 'Enabled — signature hash will render here after confirmation.'
-                : 'Not in this build: judges see real wallet + cluster + ticket state instead of a fake hash.'}
-            </p>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Commit tx (program)</p>
+            {txSignature ? (
+              <p className="break-all font-mono text-xs text-primary">{txSignature}</p>
+            ) : (
+              <p className="text-xs leading-relaxed text-destructive">
+                Missing tx signature. On-chain check-in evidence is incomplete.
+              </p>
+            )}
           </div>
+          {checkInTxSignature ? (
+            <div className="rounded-lg border border-dashed border-border bg-background/50 p-3">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Check-in tx (program)</p>
+              <p className="break-all font-mono text-xs text-primary">{checkInTxSignature}</p>
+            </div>
+          ) : null}
 
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-xs font-mono text-foreground">Solscan · {network}</p>
-            <ActionCTA
-              href={network === 'mainnet-beta' ? 'https://solscan.io' : 'https://solscan.io/?cluster=devnet'}
-              variant="outline"
-              size="sm"
-            >
-              Open
-            </ActionCTA>
+            {solscanTxUrl ? (
+              <ActionCTA href={solscanTxUrl} variant="outline" size="sm">
+                Open tx
+              </ActionCTA>
+            ) : (
+              <ActionCTA
+                href={network === 'mainnet-beta' ? 'https://solscan.io' : 'https://solscan.io/?cluster=devnet'}
+                variant="outline"
+                size="sm"
+              >
+                Open cluster
+              </ActionCTA>
+            )}
           </div>
         </div>
 
@@ -152,7 +170,7 @@ function CheckInSuccessContent() {
           ) : null}
         </div>
 
-        <p className="mt-8 text-center text-[10px] text-muted-foreground">Ranti · hackathon demo · {network}</p>
+        <p className="mt-8 text-center text-[10px] text-muted-foreground">Ranti · protocol check-in · {network}</p>
       </div>
     </main>
   )

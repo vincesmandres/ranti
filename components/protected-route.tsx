@@ -18,32 +18,41 @@ const BYPASS_AUTH_FOR_TESTING = process.env.NEXT_PUBLIC_BYPASS_AUTH_FOR_TESTING 
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading: authLoading } = useAuth()
-  const { connected, publicKey } = useWallet()
+  const { connected, publicKey, connecting, disconnecting } = useWallet()
   const router = useRouter()
   const [isReady, setIsReady] = useState(false)
+  const [hasChecked, setHasChecked] = useState(false)
 
   // Consider authenticated if user exists OR wallet is connected
   const isAuthenticated = !!user || (connected && !!publicKey)
-  const loading = authLoading && !connected
+  
+  // Still loading if auth is loading, wallet is connecting, or wallet hasn't settled
+  const isWalletLoading = connecting || disconnecting
+  const loading = authLoading || isWalletLoading
 
   // Bypass auth for testing mode
   if (BYPASS_AUTH_FOR_TESTING) {
     return <>{children}</>
   }
 
+  // Wait for wallet adapter to fully initialize (autoConnect needs time)
   useEffect(() => {
-    // Wait a tick for wallet state to initialize
     const timer = setTimeout(() => {
       setIsReady(true)
-    }, 100)
+    }, 500) // Increased to 500ms to allow autoConnect to complete
     return () => clearTimeout(timer)
   }, [])
 
+  // Only redirect after we're sure the wallet state has settled
   useEffect(() => {
-    if (isReady && !loading && !isAuthenticated) {
-      router.push('/')
+    if (isReady && !loading && !hasChecked) {
+      setHasChecked(true)
+      console.log('[v0] ProtectedRoute check:', { connected, publicKey: publicKey?.toBase58(), user: !!user, isAuthenticated })
+      if (!isAuthenticated) {
+        router.push('/')
+      }
     }
-  }, [isAuthenticated, loading, router, isReady])
+  }, [isReady, loading, isAuthenticated, hasChecked, router, connected, publicKey, user])
 
   if (!isReady || loading) {
     return (

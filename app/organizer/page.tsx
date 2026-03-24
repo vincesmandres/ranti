@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useOrganizer } from '@/lib/hooks/use-organizer'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
+import { ProtectedRoute } from '@/components/protected-route'
 
 type ModalType = 'none' | 'create-event' | 'success'
 
@@ -87,33 +88,38 @@ export default function OrganizerDashboard() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-          <p className="text-muted">Loading organizer data...</p>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted">Loading organizer data...</p>
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
-          >
-            Retry
-          </button>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-[#0E150C] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-destructive mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
+            >
+              Retry
+            </button>
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-[#0E150C] flex">
       {/* Sidebar */}
       <aside className="w-64 border-r border-[#404A38]/10 flex flex-col fixed left-0 top-0 h-full bg-[#0E150C]">
@@ -611,5 +617,6 @@ export default function OrganizerDashboard() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   )
 }
